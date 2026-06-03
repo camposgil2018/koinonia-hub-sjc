@@ -1,0 +1,301 @@
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle, Plus, Trash2, CalendarOff, Users } from "lucide-react";
+import { toast } from "sonner";
+import { useStore, store, uid, CATALOG, isUserUnavailable, type ScheduleAssignment } from "@/lib/church-store";
+
+const formatDate = (iso: string) =>
+  new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+
+export function Schedules() {
+  const state = useStore((s) => s);
+  const me = state.users.find((u) => u.id === state.currentUserId)!;
+  const isAdmin = me.role === "admin";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl">Escalas de Ministérios</h1>
+          <p className="text-sm text-muted-foreground mt-1">Organize e visualize as escalas dos cultos e eventos.</p>
+        </div>
+        {isAdmin && <NewScheduleDialog />}
+      </div>
+
+      <Tabs defaultValue="all">
+        <TabsList>
+          <TabsTrigger value="all">Todas as escalas</TabsTrigger>
+          <TabsTrigger value="mine">Minhas escalas</TabsTrigger>
+          <TabsTrigger value="unav"><CalendarOff className="h-3.5 w-3.5 mr-1.5" />Indisponibilidade</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="mt-5 space-y-5">
+          {[...state.schedules].sort((a, b) => a.date.localeCompare(b.date)).map((s) => (
+            <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} />
+          ))}
+        </TabsContent>
+
+        <TabsContent value="mine" className="mt-5 space-y-5">
+          {state.schedules
+            .filter((s) => s.assignments.some((a) => a.userId === me.id))
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map((s) => <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} highlightUserId={me.id} />)}
+          {state.schedules.filter((s) => s.assignments.some((a) => a.userId === me.id)).length === 0 && (
+            <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Você não está em nenhuma escala.</CardContent></Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="unav" className="mt-5">
+          <UnavailabilityPanel />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function ScheduleCard({
+  schedule, canEdit, highlightUserId,
+}: { schedule: import("@/lib/church-store").Schedule; canEdit: boolean; highlightUserId?: string }) {
+  const users = useStore((s) => s.users);
+  const unav = useStore((s) => s.unavailability);
+
+  const grouped = useMemo(() => {
+    const m = new Map<string, ScheduleAssignment[]>();
+    schedule.assignments.forEach((a) => {
+      if (!m.has(a.ministry)) m.set(a.ministry, []);
+      m.get(a.ministry)!.push(a);
+    });
+    return Array.from(m.entries());
+  }, [schedule.assignments]);
+
+  const remove = () => {
+    store.set((s) => ({ ...s, schedules: s.schedules.filter((x) => x.id !== schedule.id) }));
+    toast.success("Escala removida");
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">{formatDate(schedule.date)} • {schedule.time}</div>
+          <CardTitle className="text-xl font-display mt-1">{schedule.title}</CardTitle>
+        </div>
+        {canEdit && (
+          <Button variant="ghost" size="icon" onClick={remove} className="text-muted-foreground hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 md:grid-cols-2">
+          {grouped.map(([ministry, list]) => (
+            <div key={ministry} className="rounded-lg border border-border bg-muted/20 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="h-3.5 w-3.5 text-primary" />
+                <div className="text-sm font-semibold">{ministry}</div>
+              </div>
+              <ul className="space-y-2">
+                {list.map((a, i) => {
+                  const u = users.find((x) => x.id === a.userId);
+                  const unavailable = u && isUserUnavailable(u.id, schedule.date, unav);
+                  const me = highlightUserId === a.userId;
+                  return (
+                    <li key={i} className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm ${me ? "bg-gold/15 ring-1 ring-gold/40" : ""}`}>
+                      <span className="text-muted-foreground text-xs w-28 shrink-0">{a.role}</span>
+                      <span className="flex-1 truncate font-medium">{u?.name ?? "—"}</span>
+                      {unavailable && (
+                        <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="h-3 w-3 mr-1" />Indisponível</Badge>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NewScheduleDialog() {
+  const [open, setOpen] = useState(false);
+  const users = useStore((s) => s.users);
+  const unav = useStore((s) => s.unavailability);
+  const [title, setTitle] = useState("Culto da Família");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("18:00");
+  const [ministry, setMinistry] = useState<string>(CATALOG.MINISTRIES[0]);
+  const [assignments, setAssignments] = useState<{ role: string; userId: string; ministry: string }[]>([]);
+  const [roleName, setRoleName] = useState("");
+  const [pickedUser, setPickedUser] = useState<string>("");
+
+  const reset = () => { setTitle("Culto da Família"); setDate(""); setTime("18:00"); setAssignments([]); setRoleName(""); setPickedUser(""); };
+
+  const addAssignment = () => {
+    if (!roleName || !pickedUser) { toast.error("Informe função e voluntário"); return; }
+    if (date && isUserUnavailable(pickedUser, date, unav)) {
+      toast.warning("Aviso: este voluntário está indisponível nesta data", {
+        description: "A escalação foi adicionada mesmo assim. Revise antes de salvar.",
+      });
+    }
+    setAssignments((a) => [...a, { role: roleName, userId: pickedUser, ministry }]);
+    setRoleName(""); setPickedUser("");
+  };
+
+  const save = () => {
+    if (!title || !date || !time) { toast.error("Preencha título, data e horário"); return; }
+    if (assignments.length === 0) { toast.error("Adicione ao menos uma escalação"); return; }
+    store.set((s) => ({ ...s, schedules: [...s.schedules, { id: uid(), title, date, time, assignments }] }));
+    toast.success("Escala criada com sucesso");
+    reset(); setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
+      <DialogTrigger asChild>
+        <Button className="gap-2"><Plus className="h-4 w-4" />Nova escala</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Nova escala</DialogTitle></DialogHeader>
+        <div className="grid gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-3"><Label>Título</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div><Label>Data</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div><Label>Horário</Label><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div>
+            <div>
+              <Label>Ministério</Label>
+              <Select value={ministry} onValueChange={setMinistry}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{CATALOG.MINISTRIES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border p-4 space-y-3 bg-muted/20">
+            <div className="text-sm font-medium">Adicionar voluntário</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div><Label>Função</Label><Input placeholder="Ex: Vocal" value={roleName} onChange={(e) => setRoleName(e.target.value)} /></div>
+              <div className="sm:col-span-2">
+                <Label>Voluntário</Label>
+                <Select value={pickedUser} onValueChange={setPickedUser}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {users.map((u) => {
+                      const blocked = date && isUserUnavailable(u.id, date, unav);
+                      return (
+                        <SelectItem key={u.id} value={u.id}>
+                          <span className="flex items-center gap-2">
+                            {u.name}
+                            {blocked && <span className="text-[10px] text-destructive">• indisponível</span>}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {date && pickedUser && isUserUnavailable(pickedUser, date, unav) && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>Este voluntário cadastrou indisponibilidade para esta data.</AlertDescription>
+              </Alert>
+            )}
+            <Button type="button" variant="secondary" onClick={addAssignment} className="gap-2"><Plus className="h-4 w-4" />Incluir</Button>
+          </div>
+
+          {assignments.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Escalações adicionadas</Label>
+              <div className="rounded-lg border divide-y">
+                {assignments.map((a, i) => {
+                  const u = users.find((x) => x.id === a.userId);
+                  return (
+                    <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                      <div><span className="text-muted-foreground text-xs">{a.ministry}</span> · <span className="font-medium">{a.role}</span> — {u?.name}</div>
+                      <Button variant="ghost" size="icon" onClick={() => setAssignments((p) => p.filter((_, j) => j !== i))}>
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={save}>Salvar escala</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UnavailabilityPanel() {
+  const state = useStore((s) => s);
+  const me = state.users.find((u) => u.id === state.currentUserId)!;
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [reason, setReason] = useState("");
+
+  const mine = state.unavailability.filter((u) => u.userId === me.id);
+
+  const add = () => {
+    if (!start || !end) { toast.error("Informe data inicial e final"); return; }
+    if (end < start) { toast.error("Data final deve ser após a inicial"); return; }
+    store.set((s) => ({ ...s, unavailability: [...s.unavailability, { id: uid(), userId: me.id, start, end, reason }] }));
+    setStart(""); setEnd(""); setReason("");
+    toast.success("Indisponibilidade registrada");
+  };
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Registrar indisponibilidade</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">Informe o período em que você <strong>não</strong> poderá servir. A liderança verá isso ao montar as escalas.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Início</Label><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
+            <div><Label>Fim</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
+          </div>
+          <div><Label>Motivo (opcional)</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Viagem, trabalho..." /></div>
+          <Button onClick={add} className="gap-2 w-full sm:w-auto"><Plus className="h-4 w-4" />Adicionar período</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Meus períodos cadastrados</CardTitle></CardHeader>
+        <CardContent>
+          {mine.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma indisponibilidade registrada.</p>
+          ) : (
+            <ul className="space-y-2">
+              {mine.map((u) => (
+                <li key={u.id} className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+                  <div>
+                    <div className="font-medium">{new Date(u.start + "T12:00:00").toLocaleDateString("pt-BR")} → {new Date(u.end + "T12:00:00").toLocaleDateString("pt-BR")}</div>
+                    {u.reason && <div className="text-xs text-muted-foreground">{u.reason}</div>}
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => store.set((s) => ({ ...s, unavailability: s.unavailability.filter((x) => x.id !== u.id) }))}>
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

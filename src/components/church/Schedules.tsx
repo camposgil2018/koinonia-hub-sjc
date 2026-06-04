@@ -32,18 +32,20 @@ export function Schedules() {
         {isAdmin && <NewScheduleDialog />}
       </div>
 
-      <Tabs defaultValue="all">
+      <Tabs defaultValue={isAdmin ? "all" : "mine"}>
         <TabsList>
-          <TabsTrigger value="all">Todas as escalas</TabsTrigger>
+          {isAdmin && <TabsTrigger value="all">Todas as escalas</TabsTrigger>}
           <TabsTrigger value="mine">Minhas escalas</TabsTrigger>
           <TabsTrigger value="unav"><CalendarOff className="h-3.5 w-3.5 mr-1.5" />Indisponibilidade</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-5 space-y-5">
-          {[...state.schedules].sort((a, b) => a.date.localeCompare(b.date)).map((s) => (
-            <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} />
-          ))}
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="all" className="mt-5 space-y-5">
+            {[...state.schedules].sort((a, b) => a.date.localeCompare(b.date)).map((s) => (
+              <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} />
+            ))}
+          </TabsContent>
+        )}
 
         <TabsContent value="mine" className="mt-5 space-y-5">
           {state.schedules

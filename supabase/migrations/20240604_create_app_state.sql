@@ -15,18 +15,21 @@ ON CONFLICT (id) DO NOTHING;
 ALTER TABLE public.app_state ENABLE ROW LEVEL SECURITY;
 
 -- 4️⃣ Policy to allow anonymous users to SELECT (read) the state
+DROP POLICY IF EXISTS public_select ON public.app_state;
 CREATE POLICY "public_select"
     ON public.app_state
     FOR SELECT
     USING (true);
 
 -- 5️⃣ Policy to allow anonymous users to INSERT the state (upsert)
+DROP POLICY IF EXISTS public_insert ON public.app_state;
 CREATE POLICY "public_insert"
     ON public.app_state
     FOR INSERT
     WITH CHECK (true);
 
 -- 6️⃣ Policy to allow anonymous users to UPDATE the state (upsert)
+DROP POLICY IF EXISTS public_update ON public.app_state;
 CREATE POLICY "public_update"
     ON public.app_state
     FOR UPDATE

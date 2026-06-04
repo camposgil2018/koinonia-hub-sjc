@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Hub Koinonia Sjc" },
+      { name: "description", content: "Koinonia Hub Sjc is a responsive web app for church internal management." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Hub Koinonia Sjc" },
+      { property: "og:description", content: "Koinonia Hub Sjc is a responsive web app for church internal management." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Hub Koinonia Sjc" },
+      { name: "twitter:description", content: "Koinonia Hub Sjc is a responsive web app for church internal management." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7624eb99-e9f5-45c2-801a-fb69a306864b/id-preview-a4e5d285--b985544c-b4de-43d1-b06c-7b0cbe17cfc9.lovable.app-1780544538990.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7624eb99-e9f5-45c2-801a-fb69a306864b/id-preview-a4e5d285--b985544c-b4de-43d1-b06c-7b0cbe17cfc9.lovable.app-1780544538990.png" },
     ],
     links: [
       {

@@ -20,9 +20,14 @@ CREATE POLICY "public_select"
     FOR SELECT
     USING (true);
 
--- 5️⃣ Policy to allow anonymous users to INSERT/UPDATE (upsert) the state
-CREATE POLICY "public_upsert"
+-- 5️⃣ Policy to allow anonymous users to INSERT the state (upsert)
+CREATE POLICY "public_insert"
     ON public.app_state
-    FOR ALL
-    USING (true)
+    FOR INSERT
+    WITH CHECK (true);
+
+-- 6️⃣ Policy to allow anonymous users to UPDATE the state (upsert)
+CREATE POLICY "public_update"
+    ON public.app_state
+    FOR UPDATE
     WITH CHECK (true);

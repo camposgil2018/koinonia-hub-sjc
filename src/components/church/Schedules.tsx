@@ -42,7 +42,7 @@ const formatDate = (iso: string) =>
 export function Schedules() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
-  const isAdmin = me.role === "admin";
+  const isAdmin = me.role === "admin" || me.role === "moderator";
 
   return (
     <div className="space-y-6">
@@ -113,6 +113,27 @@ function ScheduleCard({
   const users = useStore((s) => s.users);
   const unav = useStore((s) => s.unavailability);
 
+  const setScheduleStatus = (scheduleId: string, status: "confirmed" | "declined") => {
+    if (!highlightUserId) return;
+    store.set((s) => ({
+      ...s,
+      schedules: s.schedules.map((sch) => {
+        if (sch.id !== scheduleId) return sch;
+        return {
+          ...sch,
+          assignments: sch.assignments.map((a) =>
+            a.userId === highlightUserId ? { ...a, status } : a
+          ),
+        };
+      }),
+    }));
+    toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
+  };
+
+  const myAssignments = schedule.assignments.filter((a) => a.userId === highlightUserId);
+  const hasMyAssignment = myAssignments.length > 0;
+
+
   const grouped = useMemo(() => {
     const m = new Map<string, ScheduleAssignment[]>();
     schedule.assignments.forEach((a) => {
@@ -160,26 +181,64 @@ function ScheduleCard({
                   const u = users.find((x) => x.id === a.userId);
                   const unavailable = u && isUserUnavailable(u.id, schedule.date, unav);
                   const me = highlightUserId === a.userId;
-                  return (
-                    <li
-                      key={i}
-                      className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm ${me ? "bg-gold/15 ring-1 ring-gold/40" : ""}`}
-                    >
-                      <span className="text-muted-foreground text-xs w-28 shrink-0">{a.role}</span>
-                      <span className="flex-1 truncate font-medium">{u?.name ?? "—"}</span>
-                      {unavailable && (
-                        <Badge variant="destructive" className="text-[10px]">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Indisponível
-                        </Badge>
-                      )}
-                    </li>
-                  );
+                    return (
+                      <li
+                        key={i}
+                        className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm ${me ? "bg-gold/15 ring-1 ring-gold/40" : ""}`}
+                      >
+                        <span className="text-muted-foreground text-xs w-28 shrink-0">{a.role}</span>
+                        <span className="flex-1 truncate font-medium">{u?.name ?? "—"}</span>
+                        <div className="flex items-center gap-1.5">
+                          {a.status === "confirmed" && (
+                            <Badge className="bg-success/15 hover:bg-success/25 text-success border-success/30 px-1.5 py-0.5 text-[10px] font-normal">
+                              ✔ Confirmado
+                            </Badge>
+                          )}
+                          {a.status === "declined" && (
+                            <Badge className="bg-destructive/15 hover:bg-destructive/25 text-destructive border-destructive/30 px-1.5 py-0.5 text-[10px] font-normal">
+                              ✘ Recusado
+                            </Badge>
+                          )}
+                          {(a.status === "pending" || !a.status) && (
+                            <Badge className="bg-muted text-muted-foreground border-border px-1.5 py-0.5 text-[10px] font-normal">
+                              ⏳ Pendente
+                            </Badge>
+                          )}
+                          {unavailable && (
+                            <Badge variant="destructive" className="text-[10px]">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Indisponível
+                            </Badge>
+                          )}
+                        </div>
+                      </li>
+                    );
                 })}
               </ul>
             </div>
           ))}
         </div>
+        {hasMyAssignment && (
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-4">
+            <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença nesta escala:</span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 bg-success/10 hover:bg-success/20 text-success border-success/30"
+              onClick={() => setScheduleStatus(schedule.id, "confirmed")}
+            >
+              Confirmar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+              onClick={() => setScheduleStatus(schedule.id, "declined")}
+            >
+              Recusar
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -193,9 +252,7 @@ function NewScheduleDialog() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("18:00");
   const [ministry, setMinistry] = useState<string>(CATALOG.MINISTRIES[0]);
-  const [assignments, setAssignments] = useState<
-    { role: string; userId: string; ministry: string }[]
-  >([]);
+  const [assignments, setAssignments] = useState<ScheduleAssignment[]>([]);
   const [roleName, setRoleName] = useState("");
   const [pickedUser, setPickedUser] = useState<string>("");
 
@@ -218,7 +275,7 @@ function NewScheduleDialog() {
         description: "A escalação foi adicionada mesmo assim. Revise antes de salvar.",
       });
     }
-    setAssignments((a) => [...a, { role: roleName, userId: pickedUser, ministry }]);
+    setAssignments((a) => [...a, { role: roleName, userId: pickedUser, ministry, status: "pending" }]);
     setRoleName("");
     setPickedUser("");
   };

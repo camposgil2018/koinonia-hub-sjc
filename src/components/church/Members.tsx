@@ -13,8 +13,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { Search, Shield, ShieldOff, Trash2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { useStore, store, type User } from "@/lib/church-store";
+import { useStore, store, type User, type Role } from "@/lib/church-store";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Members() {
   const users = useStore((s) => s.users);
@@ -25,7 +31,8 @@ export function Members() {
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     const arr = [...users].sort((a, b) => {
-      if (a.role !== b.role) return a.role === "admin" ? -1 : 1;
+      const weight: Record<Role, number> = { admin: 1, moderator: 2, member: 3 };
+      if (a.role !== b.role) return weight[a.role] - weight[b.role];
       return a.name.localeCompare(b.name);
     });
     if (!term) return arr;
@@ -37,16 +44,17 @@ export function Members() {
     );
   }, [users, q]);
 
-  const toggleRole = (u: User) => {
+  const changeRole = (u: User, newRole: Role) => {
     store.set((s) => ({
       ...s,
-      users: s.users.map((x) =>
-        x.id === u.id ? { ...x, role: x.role === "admin" ? "member" : "admin" } : x,
-      ),
+      users: s.users.map((x) => (x.id === u.id ? { ...x, role: newRole } : x)),
     }));
-    toast.success(
-      u.role === "admin" ? `${u.name} agora é membro` : `${u.name} promovido(a) a administrador`,
-    );
+    const roleNames: Record<Role, string> = {
+      admin: "Administrador",
+      moderator: "Moderador",
+      member: "Membro",
+    };
+    toast.success(`${u.name} agora é ${roleNames[newRole]}`);
   };
 
   const remove = (u: User) => {
@@ -107,13 +115,14 @@ export function Members() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="font-medium truncate">{u.name}</div>
                   <Badge
-                    variant={u.role === "admin" ? "default" : "secondary"}
+                    variant={u.role === "admin" ? "default" : u.role === "moderator" ? "outline" : "secondary"}
                     className={cn(
                       "text-[10px]",
                       u.role === "admin" && "bg-gold text-gold-foreground hover:bg-gold",
+                      u.role === "moderator" && "border-blue-500 text-blue-500 hover:bg-blue-500/10",
                     )}
                   >
-                    {u.role === "admin" ? "Administrador" : "Membro"}
+                    {u.role === "admin" ? "Administrador" : u.role === "moderator" ? "Moderador" : "Membro"}
                   </Badge>
                   {u.id === meId && (
                     <Badge variant="outline" className="text-[10px]">
@@ -145,18 +154,27 @@ export function Members() {
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => toggleRole(u)}
-                  title={u.role === "admin" ? "Tornar membro" : "Tornar admin"}
-                >
-                  {u.role === "admin" ? (
-                    <ShieldOff className="h-4 w-4" />
-                  ) : (
-                    <Shield className="h-4 w-4 text-gold" />
-                  )}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Alterar papel">
+                      <Shield className={cn(
+                        "h-4 w-4",
+                        u.role === "admin" ? "text-gold" : u.role === "moderator" ? "text-blue-500" : "text-muted-foreground"
+                      )} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => changeRole(u, "member")}>
+                      Membro
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => changeRole(u, "moderator")}>
+                      Moderador
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => changeRole(u, "admin")}>
+                      Administrador
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="ghost" size="icon" onClick={() => setEdit(u)} className="text-xs">
                   <Pencil />
                 </Button>

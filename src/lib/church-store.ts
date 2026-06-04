@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { fetchState, upsertState } from "./supabase";
 
-export type Role = "admin" | "member";
+export type Role = "admin" | "moderator" | "member";
 export type User = {
   id: string;
   name: string;
@@ -19,7 +19,12 @@ export type Unavailability = {
   end: string;
   reason?: string;
 };
-export type ScheduleAssignment = { ministry: string; role: string; userId: string };
+export type ScheduleAssignment = {
+  ministry: string;
+  role: string;
+  userId: string;
+  status?: "pending" | "confirmed" | "declined";
+};
 export type Schedule = {
   id: string;
   date: string;
@@ -320,9 +325,9 @@ const initial: State = {
   events: seedEvents,
   notices: seedNotices,
   unavailability: seedUnav,
-  googleCalendarId: "",
-  googleApiKey: "",
-  syncGoogleCalendar: false,
+  googleCalendarId: "4b88cf74ed95360b5fc63320b942cbc57e04af8b425a63da19b5b52701cd0500",
+  googleApiKey: "AIzaSyD5ljz3iH8sSfWzq9pYpu--waAZHnkYHZQ",
+  syncGoogleCalendar: true,
 };
 
 const load = (): State => {

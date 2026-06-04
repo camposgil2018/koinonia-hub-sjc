@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useStore } from "@/lib/church-store";
+import { useStore, store } from "@/lib/church-store";
 import { CalendarClock, Sparkles, BookOpen, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
 
 const VERSES = [
   { ref: "Salmos 133:1", text: "Oh! quão bom e quão suave é que os irmãos vivam em união." },
@@ -38,6 +40,38 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const myNext = upcoming[0];
+
+  const myAssignments = myNext ? myNext.assignments.filter((a) => a.userId === me.id) : [];
+  const allConfirmed = myAssignments.length > 0 && myAssignments.every((a) => a.status === "confirmed");
+  const anyDeclined = myAssignments.length > 0 && myAssignments.some((a) => a.status === "declined");
+
+  let statusLabel = "Pendente";
+  let statusClass = "bg-muted text-muted-foreground hover:bg-muted border border-border";
+
+  if (allConfirmed) {
+    statusLabel = "Confirmado";
+    statusClass = "bg-success text-success-foreground hover:bg-success";
+  } else if (anyDeclined) {
+    statusLabel = "Recusado";
+    statusClass = "bg-destructive text-destructive-foreground hover:bg-destructive";
+  }
+
+  const setMyNextStatus = (status: "confirmed" | "declined") => {
+    if (!myNext) return;
+    store.set((s) => ({
+      ...s,
+      schedules: s.schedules.map((sch) => {
+        if (sch.id !== myNext.id) return sch;
+        return {
+          ...sch,
+          assignments: sch.assignments.map((a) =>
+            a.userId === me.id ? { ...a, status } : a
+          ),
+        };
+      }),
+    }));
+    toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
+  };
   const upcomingEvents = state.events
     .filter((e) => e.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -101,8 +135,8 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
                     </div>
                     <div className="font-display text-2xl mt-1">{myNext.title}</div>
                   </div>
-                  <Badge className="bg-success text-success-foreground hover:bg-success">
-                    Confirmado
+                  <Badge className={statusClass}>
+                    {statusLabel}
                   </Badge>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
@@ -117,9 +151,28 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
                       </div>
                     ))}
                 </div>
+                <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-3">
+                  <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença:</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 bg-success/10 hover:bg-success/20 text-success border-success/30"
+                    onClick={() => setMyNextStatus("confirmed")}
+                  >
+                    Confirmar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+                    onClick={() => setMyNextStatus("declined")}
+                  >
+                    Recusar
+                  </Button>
+                </div>
                 <button
                   onClick={() => goTo("schedules")}
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-primary hover:underline block pt-2"
                 >
                   Ver todas as escalas →
                 </button>

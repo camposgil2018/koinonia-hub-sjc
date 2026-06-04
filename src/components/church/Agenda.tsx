@@ -121,7 +121,7 @@ const mapGoogleEvent = (gEvent: GoogleEvent): ChurchEvent => {
 export function Agenda() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
-  const isAdmin = me.role === "admin";
+  const isAdmin = me.role === "admin" || me.role === "moderator";
 
   const { data: gcalEvents = [], error: gcalError } = useQuery({
     queryKey: ["googleCalendarEvents", state.googleCalendarId, state.googleApiKey],

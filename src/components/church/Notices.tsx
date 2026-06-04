@@ -35,7 +35,7 @@ const categoryStyles: Record<string, string> = {
 export function Notices() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
-  const isAdmin = me.role === "admin";
+  const isAdmin = me.role === "admin" || me.role === "moderator";
 
   const sorted = [...state.notices].sort(
     (a, b) => Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date),

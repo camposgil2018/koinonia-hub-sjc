@@ -184,7 +184,7 @@ function UserCard() {
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium text-sidebar-foreground truncate">{u.name}</div>
           <div className="text-[11px] text-sidebar-foreground/60">
-            {u.role === "admin" ? "Administrador" : "Membro"}
+            {u.role === "admin" ? "Administrador" : u.role === "moderator" ? "Moderador" : "Membro"}
           </div>
         </div>
         <button
@@ -263,9 +263,12 @@ function RoleBadge() {
   return (
     <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
       <span
-        className={cn("h-1.5 w-1.5 rounded-full", u.role === "admin" ? "bg-gold" : "bg-success")}
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          u.role === "admin" ? "bg-gold" : u.role === "moderator" ? "bg-blue-500" : "bg-success"
+        )}
       />
-      {u.role === "admin" ? "Administrador" : "Membro"}
+      {u.role === "admin" ? "Administrador" : u.role === "moderator" ? "Moderador" : "Membro"}
     </span>
   );
 }

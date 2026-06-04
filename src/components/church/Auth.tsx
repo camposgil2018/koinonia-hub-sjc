@@ -8,14 +8,19 @@ import { Badge } from "@/components/ui/badge";
 import { auth, CATALOG } from "@/lib/church-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import logoIgreja from "@/assets/logo-igreja.png";
 
 export function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary/95 to-primary/80 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8 text-primary-foreground">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-gold to-gold/60 text-primary font-display font-bold text-2xl mb-4 shadow-lg">
-            K
+          <div className="inline-flex items-center justify-center mb-4">
+            <img
+              src={logoIgreja}
+              alt="Logo da Igreja"
+              className="h-20 w-20 rounded-xl object-contain shadow-lg"
+            />
           </div>
           <h1 className="font-display text-3xl">Hub Koinonia</h1>
           <p className="text-sm text-primary-foreground/70 mt-1 uppercase tracking-widest">SJC</p>

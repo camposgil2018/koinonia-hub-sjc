@@ -33,4 +33,5 @@ DROP POLICY IF EXISTS public_update ON public.app_state;
 CREATE POLICY "public_update"
     ON public.app_state
     FOR UPDATE
+    USING (true)
     WITH CHECK (true);

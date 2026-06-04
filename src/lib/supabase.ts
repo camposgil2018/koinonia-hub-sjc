@@ -23,6 +23,6 @@ export async function fetchState() {
 export async function upsertState(state: any) {
   const { error } = await supabase
     .from("app_state")
-    .upsert({ id: "singleton", state_json: state }, { returning: "minimal" });
+    .upsert({ id: "singleton", state_json: state }, { onConflict: "id" });
   if (error) console.error("Supabase: falha ao salvar o estado", error);
 }

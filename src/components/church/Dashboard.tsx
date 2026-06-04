@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/church-store";
 import { CalendarClock, Sparkles, BookOpen, Pin } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const VERSES = [
   { ref: "Salmos 133:1", text: "Oh! quão bom e quão suave é que os irmãos vivam em união." },
@@ -51,6 +52,18 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
       <div>
         <p className="text-sm text-muted-foreground">Olá, bem-vindo(a) de volta</p>
         <h1 className="font-display text-3xl lg:text-4xl mt-1">Paz, {me.name.split(" ")[0]}.</h1>
+        {/* Botão para resetar dados locais */}
+        <div className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              localStorage.removeItem('koinonia-state-v2');
+              window.location.reload();
+            }}
+          >
+            Resetar Dados Locais
+          </Button>
+        </div>
       </div>
 
       {/* Verse of the day */}

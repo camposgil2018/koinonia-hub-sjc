@@ -364,8 +364,11 @@ export const store = {
 // Inicializar estado a partir do Supabase (se houver)
 if (typeof window !== "undefined") {
   fetchState().then((remote) => {
-    if (remote) {
-      store.set(() => ({ ...state, ...remote }));
+    if (remote && remote.users && remote.users.length > 0) {
+      // O estado remoto tem dados reais — usar como base,
+      // mas preservar o currentUserId local (login é por dispositivo)
+      const localUserId = state.currentUserId;
+      store.set(() => ({ ...initial, ...remote, currentUserId: localUserId }));
     }
   }).catch((e) => console.warn('Supabase fetch error:', e));
 }

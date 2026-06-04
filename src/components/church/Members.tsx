@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,16 +138,17 @@ function Pencil() {
 }
 
 function EditMemberDialog({ user, onClose }: { user: User | null; onClose: () => void }) {
-  const [name, setName] = useState(user?.name ?? "");
-  const [phone, setPhone] = useState(user?.phone ?? "");
-  const [ministries, setMinistries] = useState(user?.ministries.join(", ") ?? "");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [ministries, setMinistries] = useState("");
 
-  // reset when user changes
-  if (user && name === "" && user.name) {
-    setName(user.name);
-    setPhone(user.phone ?? "");
-    setMinistries(user.ministries.join(", "));
-  }
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setPhone(user.phone ?? "");
+      setMinistries(user.ministries.join(", "));
+    }
+  }, [user]);
 
   const save = () => {
     if (!user) return;
@@ -162,7 +163,7 @@ function EditMemberDialog({ user, onClose }: { user: User | null; onClose: () =>
   };
 
   return (
-    <Dialog open={!!user} onOpenChange={(o) => { if (!o) { onClose(); setName(""); } }}>
+    <Dialog open={!!user} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>Editar membro</DialogTitle></DialogHeader>
         <div className="grid gap-3">

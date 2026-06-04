@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase URL e chave pública (anon) fornecida pelo usuário
-const SUPABASE_URL = "https://lhwlldxhslsoiwmkdkmm.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_fnCqmSYquvGcySmiAj_k7Q_Lkqdd_ok";
+// Supabase URL e chave pública (anon) — via variáveis de ambiente ou fallback
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://lhwlldxhslsoiwmkdkmm.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_fnCqmSYquvGcySmiAj_k7Q_Lkqdd_ok";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

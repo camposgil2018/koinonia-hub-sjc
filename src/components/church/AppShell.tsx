@@ -1,10 +1,24 @@
 import { useState, type ReactNode } from "react";
-import { Home, CalendarDays, Users, Megaphone, Menu, ChevronDown, UserCog, LogOut } from "lucide-react";
+import {
+  Home,
+  CalendarDays,
+  Users,
+  Megaphone,
+  Menu,
+  ChevronDown,
+  UserCog,
+  LogOut,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore, auth } from "@/lib/church-store";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
@@ -18,7 +32,15 @@ const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean
   { id: "members", label: "Membros", icon: UserCog, adminOnly: true },
 ];
 
-export function AppShell({ tab, setTab, children }: { tab: Tab; setTab: (t: Tab) => void; children: ReactNode }) {
+export function AppShell({
+  tab,
+  setTab,
+  children,
+}: {
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  children: ReactNode;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const users = useStore((s) => s.users);
   const currentUserId = useStore((s) => s.currentUserId);
@@ -34,7 +56,10 @@ export function AppShell({ tab, setTab, children }: { tab: Tab; setTab: (t: Tab)
         return (
           <button
             key={item.id}
-            onClick={() => { setTab(item.id); onPick?.(); }}
+            onClick={() => {
+              setTab(item.id);
+              onPick?.();
+            }}
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               active
@@ -54,7 +79,9 @@ export function AppShell({ tab, setTab, children }: { tab: Tab; setTab: (t: Tab)
     <div className="min-h-screen flex w-full bg-background">
       <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <BrandHeader />
-        <div className="flex-1 py-4"><NavList /></div>
+        <div className="flex-1 py-4">
+          <NavList />
+        </div>
         <UserCard />
       </aside>
 
@@ -63,7 +90,9 @@ export function AppShell({ tab, setTab, children }: { tab: Tab; setTab: (t: Tab)
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-72 bg-sidebar text-sidebar-foreground flex flex-col">
             <BrandHeader />
-            <div className="flex-1 py-4"><NavList onPick={() => setMobileOpen(false)} /></div>
+            <div className="flex-1 py-4">
+              <NavList onPick={() => setMobileOpen(false)} />
+            </div>
             <UserCard />
           </aside>
         </div>
@@ -71,7 +100,12 @@ export function AppShell({ tab, setTab, children }: { tab: Tab; setTab: (t: Tab)
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 backdrop-blur px-4 lg:px-8">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={() => setMobileOpen(true)}
+          >
             <Menu className="h-5 w-5" />
           </Button>
           <div className="lg:hidden flex items-center gap-2">
@@ -128,7 +162,12 @@ function BrandHeader() {
 
 function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn("rounded-md bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-primary font-display font-bold", className)}>
+    <div
+      className={cn(
+        "rounded-md bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-primary font-display font-bold",
+        className,
+      )}
+    >
       K
     </div>
   );
@@ -144,10 +183,15 @@ function UserCard() {
         <Avatar user={u} />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium text-sidebar-foreground truncate">{u.name}</div>
-          <div className="text-[11px] text-sidebar-foreground/60">{u.role === "admin" ? "Administrador" : "Membro"}</div>
+          <div className="text-[11px] text-sidebar-foreground/60">
+            {u.role === "admin" ? "Administrador" : "Membro"}
+          </div>
         </div>
         <button
-          onClick={() => { auth.logout(); toast.success("Sessão encerrada"); }}
+          onClick={() => {
+            auth.logout();
+            toast.success("Sessão encerrada");
+          }}
           className="text-sidebar-foreground/60 hover:text-sidebar-foreground p-1.5 rounded-md hover:bg-sidebar-accent"
           title="Sair"
         >
@@ -158,8 +202,18 @@ function UserCard() {
   );
 }
 
-function Avatar({ user, size = 36 }: { user: { name: string; avatarColor: string }; size?: number }) {
-  const initials = user.name.split(" ").slice(0, 2).map((n) => n[0]).join("");
+function Avatar({
+  user,
+  size = 36,
+}: {
+  user: { name: string; avatarColor: string };
+  size?: number;
+}) {
+  const initials = user.name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("");
   return (
     <div
       className="rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
@@ -188,8 +242,14 @@ function UserMenu() {
           <div className="text-[11px] text-muted-foreground font-normal">{u.email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => { auth.logout(); toast.success("Sessão encerrada"); }}>
-          <LogOut className="h-4 w-4 mr-2" />Sair
+        <DropdownMenuItem
+          onClick={() => {
+            auth.logout();
+            toast.success("Sessão encerrada");
+          }}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -202,7 +262,9 @@ function RoleBadge() {
   const u = users.find((x) => x.id === id)!;
   return (
     <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-      <span className={cn("h-1.5 w-1.5 rounded-full", u.role === "admin" ? "bg-gold" : "bg-success")} />
+      <span
+        className={cn("h-1.5 w-1.5 rounded-full", u.role === "admin" ? "bg-gold" : "bg-success")}
+      />
       {u.role === "admin" ? "Administrador" : "Membro"}
     </span>
   );

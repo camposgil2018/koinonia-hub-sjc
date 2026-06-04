@@ -11,11 +11,39 @@ export type User = {
   avatarColor: string;
   phone?: string;
 };
-export type Unavailability = { id: string; userId: string; start: string; end: string; reason?: string };
+export type Unavailability = {
+  id: string;
+  userId: string;
+  start: string;
+  end: string;
+  reason?: string;
+};
 export type ScheduleAssignment = { ministry: string; role: string; userId: string };
-export type Schedule = { id: string; date: string; time: string; title: string; assignments: ScheduleAssignment[] };
-export type ChurchEvent = { id: string; date: string; time: string; title: string; location: string; description: string; category: string };
-export type Notice = { id: string; title: string; category: string; content: string; date: string; author: string; pinned: boolean };
+export type Schedule = {
+  id: string;
+  date: string;
+  time: string;
+  title: string;
+  assignments: ScheduleAssignment[];
+};
+export type ChurchEvent = {
+  id: string;
+  date: string;
+  time: string;
+  title: string;
+  location: string;
+  description: string;
+  category: string;
+};
+export type Notice = {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  date: string;
+  author: string;
+  pinned: boolean;
+};
 
 const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Recepção", "Intercessão"] as const;
 const NOTICE_CATEGORIES = ["Geral", "Jovens", "Casais", "Liderança"] as const;
@@ -23,22 +51,99 @@ const EVENT_CATEGORIES = ["Culto", "Reunião", "Pequeno Grupo", "Conferência", 
 
 export const CATALOG = { MINISTRIES, NOTICE_CATEGORIES, EVENT_CATEGORIES };
 
-const colors = ["#1e3a8a", "#0f766e", "#9a3412", "#7c3aed", "#b45309", "#0369a1", "#be123c", "#15803d"];
+const colors = [
+  "#1e3a8a",
+  "#0f766e",
+  "#9a3412",
+  "#7c3aed",
+  "#b45309",
+  "#0369a1",
+  "#be123c",
+  "#15803d",
+];
 export const pickColor = (i: number) => colors[i % colors.length];
 
 const seedUsers: User[] = [
-  { id: "u-gilmar", name: "Gilmar Campos", email: "gilmar@koinonia.com", password: "admin123", role: "admin", ministries: ["Liderança"], avatarColor: pickColor(0) },
-  { id: "u2", name: "Mariana Costa", email: "mariana@koinonia.com", password: "123456", role: "admin", ministries: ["Louvor", "Mídia"], avatarColor: pickColor(1) },
-  { id: "u3", name: "João Pereira", email: "joao@koinonia.com", password: "123456", role: "member", ministries: ["Louvor"], avatarColor: pickColor(2) },
-  { id: "u4", name: "Beatriz Souza", email: "bia@koinonia.com", password: "123456", role: "member", ministries: ["Infantil"], avatarColor: pickColor(3) },
-  { id: "u5", name: "Rafael Mendes", email: "rafael@koinonia.com", password: "123456", role: "member", ministries: ["Mídia"], avatarColor: pickColor(4) },
-  { id: "u6", name: "Carla Ribeiro", email: "carla@koinonia.com", password: "123456", role: "member", ministries: ["Recepção"], avatarColor: pickColor(5) },
-  { id: "u7", name: "Lucas Almeida", email: "lucas@koinonia.com", password: "123456", role: "member", ministries: ["Louvor", "Intercessão"], avatarColor: pickColor(6) },
-  { id: "u8", name: "Patrícia Nunes", email: "patricia@koinonia.com", password: "123456", role: "member", ministries: ["Recepção", "Infantil"], avatarColor: pickColor(7) },
+  {
+    id: "u-gilmar",
+    name: "Gilmar Campos",
+    email: "gilmar@koinonia.com",
+    password: "admin123",
+    role: "admin",
+    ministries: ["Liderança"],
+    avatarColor: pickColor(0),
+  },
+  {
+    id: "u2",
+    name: "Mariana Costa",
+    email: "mariana@koinonia.com",
+    password: "123456",
+    role: "admin",
+    ministries: ["Louvor", "Mídia"],
+    avatarColor: pickColor(1),
+  },
+  {
+    id: "u3",
+    name: "João Pereira",
+    email: "joao@koinonia.com",
+    password: "123456",
+    role: "member",
+    ministries: ["Louvor"],
+    avatarColor: pickColor(2),
+  },
+  {
+    id: "u4",
+    name: "Beatriz Souza",
+    email: "bia@koinonia.com",
+    password: "123456",
+    role: "member",
+    ministries: ["Infantil"],
+    avatarColor: pickColor(3),
+  },
+  {
+    id: "u5",
+    name: "Rafael Mendes",
+    email: "rafael@koinonia.com",
+    password: "123456",
+    role: "member",
+    ministries: ["Mídia"],
+    avatarColor: pickColor(4),
+  },
+  {
+    id: "u6",
+    name: "Carla Ribeiro",
+    email: "carla@koinonia.com",
+    password: "123456",
+    role: "member",
+    ministries: ["Recepção"],
+    avatarColor: pickColor(5),
+  },
+  {
+    id: "u7",
+    name: "Lucas Almeida",
+    email: "lucas@koinonia.com",
+    password: "123456",
+    role: "member",
+    ministries: ["Louvor", "Intercessão"],
+    avatarColor: pickColor(6),
+  },
+  {
+    id: "u8",
+    name: "Patrícia Nunes",
+    email: "patricia@koinonia.com",
+    password: "123456",
+    role: "member",
+    ministries: ["Recepção", "Infantil"],
+    avatarColor: pickColor(7),
+  },
 ];
 
 const today = new Date();
-const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const addDays = (d: Date, n: number) => {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+};
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 const nextSunday = (() => {
@@ -49,7 +154,10 @@ const nextSunday = (() => {
 
 const seedSchedules: Schedule[] = [
   {
-    id: "s1", date: iso(nextSunday), time: "18:00", title: "Culto da Família",
+    id: "s1",
+    date: iso(nextSunday),
+    time: "18:00",
+    title: "Culto da Família",
     assignments: [
       { ministry: "Louvor", role: "Vocal Principal", userId: "u2" },
       { ministry: "Louvor", role: "Violão", userId: "u3" },
@@ -60,7 +168,10 @@ const seedSchedules: Schedule[] = [
     ],
   },
   {
-    id: "s2", date: iso(addDays(nextSunday, 7)), time: "18:00", title: "Culto da Família",
+    id: "s2",
+    date: iso(addDays(nextSunday, 7)),
+    time: "18:00",
+    title: "Culto da Família",
     assignments: [
       { ministry: "Louvor", role: "Vocal Principal", userId: "u7" },
       { ministry: "Louvor", role: "Violão", userId: "u3" },
@@ -69,7 +180,10 @@ const seedSchedules: Schedule[] = [
     ],
   },
   {
-    id: "s3", date: iso(addDays(today, 3)), time: "20:00", title: "Reunião de Oração",
+    id: "s3",
+    date: iso(addDays(today, 3)),
+    time: "20:00",
+    title: "Reunião de Oração",
     assignments: [
       { ministry: "Intercessão", role: "Líder", userId: "u7" },
       { ministry: "Mídia", role: "Som", userId: "u5" },
@@ -78,23 +192,110 @@ const seedSchedules: Schedule[] = [
 ];
 
 const seedEvents: ChurchEvent[] = [
-  { id: "e1", date: iso(nextSunday), time: "18:00", title: "Culto da Família", location: "Templo Principal", description: "Culto semanal com louvor, palavra e ministração.", category: "Culto" },
-  { id: "e2", date: iso(addDays(today, 3)), time: "20:00", title: "Reunião de Oração", location: "Sala 2", description: "Encontro semanal de intercessão.", category: "Reunião" },
-  { id: "e3", date: iso(addDays(today, 5)), time: "19:30", title: "Ensaio do Louvor", location: "Auditório", description: "Ensaio para o culto de domingo.", category: "Ensaio" },
-  { id: "e4", date: iso(addDays(today, 10)), time: "19:00", title: "Pequeno Grupo - Zona Sul", location: "Casa da Família Costa", description: "Comunhão e estudo bíblico.", category: "Pequeno Grupo" },
-  { id: "e5", date: iso(addDays(today, 14)), time: "09:00", title: "Conferência de Jovens", location: "Templo Principal", description: "Dia inteiro com palestras e louvor.", category: "Conferência" },
-  { id: "e6", date: iso(addDays(today, 21)), time: "18:00", title: "Culto da Família", location: "Templo Principal", description: "Culto semanal.", category: "Culto" },
+  {
+    id: "e1",
+    date: iso(nextSunday),
+    time: "18:00",
+    title: "Culto da Família",
+    location: "Templo Principal",
+    description: "Culto semanal com louvor, palavra e ministração.",
+    category: "Culto",
+  },
+  {
+    id: "e2",
+    date: iso(addDays(today, 3)),
+    time: "20:00",
+    title: "Reunião de Oração",
+    location: "Sala 2",
+    description: "Encontro semanal de intercessão.",
+    category: "Reunião",
+  },
+  {
+    id: "e3",
+    date: iso(addDays(today, 5)),
+    time: "19:30",
+    title: "Ensaio do Louvor",
+    location: "Auditório",
+    description: "Ensaio para o culto de domingo.",
+    category: "Ensaio",
+  },
+  {
+    id: "e4",
+    date: iso(addDays(today, 10)),
+    time: "19:00",
+    title: "Pequeno Grupo - Zona Sul",
+    location: "Casa da Família Costa",
+    description: "Comunhão e estudo bíblico.",
+    category: "Pequeno Grupo",
+  },
+  {
+    id: "e5",
+    date: iso(addDays(today, 14)),
+    time: "09:00",
+    title: "Conferência de Jovens",
+    location: "Templo Principal",
+    description: "Dia inteiro com palestras e louvor.",
+    category: "Conferência",
+  },
+  {
+    id: "e6",
+    date: iso(addDays(today, 21)),
+    time: "18:00",
+    title: "Culto da Família",
+    location: "Templo Principal",
+    description: "Culto semanal.",
+    category: "Culto",
+  },
 ];
 
 const seedNotices: Notice[] = [
-  { id: "n1", title: "Campanha de Doação de Alimentos", category: "Geral", content: "Estamos arrecadando alimentos não-perecíveis até o fim do mês. Deixe sua contribuição na recepção.", date: iso(addDays(today, -1)), author: "Gilmar Campos", pinned: true },
-  { id: "n2", title: "Reunião de Líderes - Sábado 09h", category: "Liderança", content: "Todos os líderes de ministério devem comparecer.", date: iso(addDays(today, -2)), author: "Gilmar Campos", pinned: false },
-  { id: "n3", title: "Inscrições Acampa Jovem", category: "Jovens", content: "Inscrições abertas até dia 20. Vagas limitadas!", date: iso(addDays(today, -4)), author: "Mariana Costa", pinned: false },
-  { id: "n4", title: "Encontro de Casais", category: "Casais", content: "Jantar romântico com palestra. Reserve sua mesa.", date: iso(addDays(today, -7)), author: "Mariana Costa", pinned: false },
+  {
+    id: "n1",
+    title: "Campanha de Doação de Alimentos",
+    category: "Geral",
+    content:
+      "Estamos arrecadando alimentos não-perecíveis até o fim do mês. Deixe sua contribuição na recepção.",
+    date: iso(addDays(today, -1)),
+    author: "Gilmar Campos",
+    pinned: true,
+  },
+  {
+    id: "n2",
+    title: "Reunião de Líderes - Sábado 09h",
+    category: "Liderança",
+    content: "Todos os líderes de ministério devem comparecer.",
+    date: iso(addDays(today, -2)),
+    author: "Gilmar Campos",
+    pinned: false,
+  },
+  {
+    id: "n3",
+    title: "Inscrições Acampa Jovem",
+    category: "Jovens",
+    content: "Inscrições abertas até dia 20. Vagas limitadas!",
+    date: iso(addDays(today, -4)),
+    author: "Mariana Costa",
+    pinned: false,
+  },
+  {
+    id: "n4",
+    title: "Encontro de Casais",
+    category: "Casais",
+    content: "Jantar romântico com palestra. Reserve sua mesa.",
+    date: iso(addDays(today, -7)),
+    author: "Mariana Costa",
+    pinned: false,
+  },
 ];
 
 const seedUnav: Unavailability[] = [
-  { id: "x1", userId: "u3", start: iso(addDays(today, 6)), end: iso(addDays(today, 9)), reason: "Viagem a trabalho" },
+  {
+    id: "x1",
+    userId: "u3",
+    start: iso(addDays(today, 6)),
+    end: iso(addDays(today, 9)),
+    reason: "Viagem a trabalho",
+  },
 ];
 
 type State = {
@@ -104,6 +305,9 @@ type State = {
   events: ChurchEvent[];
   notices: Notice[];
   unavailability: Unavailability[];
+  googleCalendarId?: string;
+  googleApiKey?: string;
+  syncGoogleCalendar?: boolean;
 };
 
 const KEY = "koinonia-state-v2";
@@ -115,6 +319,9 @@ const initial: State = {
   events: seedEvents,
   notices: seedNotices,
   unavailability: seedUnav,
+  googleCalendarId: "",
+  googleApiKey: "",
+  syncGoogleCalendar: false,
 };
 
 const load = (): State => {
@@ -123,7 +330,9 @@ const load = (): State => {
     const raw = localStorage.getItem(KEY);
     if (!raw) return initial;
     return { ...initial, ...JSON.parse(raw) };
-  } catch { return initial; }
+  } catch {
+    return initial;
+  }
 };
 
 let state: State = load();
@@ -135,14 +344,28 @@ const save = () => {
 
 export const store = {
   get: () => state,
-  set: (updater: (s: State) => State) => { state = updater(state); save(); },
-  subscribe: (l: () => void) => { listeners.add(l); return () => listeners.delete(l); },
-  reset: () => { state = initial; save(); },
+  set: (updater: (s: State) => State) => {
+    state = updater(state);
+    save();
+  },
+  subscribe: (l: () => void) => {
+    listeners.add(l);
+    return () => listeners.delete(l);
+  },
+  reset: () => {
+    state = initial;
+    save();
+  },
 };
 
 export function useStore<T>(selector: (s: State) => T): T {
   return useSyncExternalStore(
-    (l) => { listeners.add(l); return () => { listeners.delete(l); }; },
+    (l) => {
+      listeners.add(l);
+      return () => {
+        listeners.delete(l);
+      };
+    },
     () => selector(state),
     () => selector(initial),
   );
@@ -163,11 +386,20 @@ export const auth = {
     store.set((s) => ({ ...s, currentUserId: user.id }));
     return { ok: true };
   },
-  register: (data: { name: string; email: string; password: string; phone?: string; ministries?: string[] }): { ok: true } | { ok: false; error: string } => {
+  register: (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    ministries?: string[];
+  }): { ok: true } | { ok: false; error: string } => {
     const e = data.email.trim().toLowerCase();
-    if (!data.name.trim() || !e || !data.password) return { ok: false, error: "Preencha todos os campos" };
-    if (data.password.length < 6) return { ok: false, error: "A senha deve ter no mínimo 6 caracteres" };
-    if (state.users.some((u) => u.email.toLowerCase() === e)) return { ok: false, error: "E-mail já cadastrado" };
+    if (!data.name.trim() || !e || !data.password)
+      return { ok: false, error: "Preencha todos os campos" };
+    if (data.password.length < 6)
+      return { ok: false, error: "A senha deve ter no mínimo 6 caracteres" };
+    if (state.users.some((u) => u.email.toLowerCase() === e))
+      return { ok: false, error: "E-mail já cadastrado" };
     const newUser: User = {
       id: "u-" + uid(),
       name: data.name.trim(),

@@ -20,7 +20,6 @@ export function Auth() {
           <h1 className="font-display text-3xl">Hub Koinonia</h1>
           <p className="text-sm text-primary-foreground/70 mt-1 uppercase tracking-widest">SJC</p>
         </div>
-
         <Card className="shadow-2xl border-0">
           <CardContent className="p-6">
             <Tabs defaultValue="login">
@@ -36,13 +35,7 @@ export function Auth() {
               </TabsContent>
             </Tabs>
           </CardContent>
-        </Card>
-
-        <div className="mt-6 rounded-lg bg-white/10 backdrop-blur p-4 text-xs text-primary-foreground/80">
-          <div className="font-semibold mb-1 text-gold">Acesso administrador demo</div>
-          <div>E-mail: <code className="text-primary-foreground">gilmar@koinonia.com</code></div>
-          <div>Senha: <code className="text-primary-foreground">admin123</code></div>
-        </div>
+        </Card>{" "}
       </div>
     </div>
   );
@@ -66,11 +59,27 @@ function LoginForm() {
     <form onSubmit={submit} className="space-y-4">
       <div>
         <Label htmlFor="login-email">E-mail</Label>
-        <Input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" autoComplete="email" required />
+        <Input
+          id="login-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="seu@email.com"
+          autoComplete="email"
+          required
+        />
       </div>
       <div>
         <Label htmlFor="login-password">Senha</Label>
-        <Input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" autoComplete="current-password" required />
+        <Input
+          id="login-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••"
+          autoComplete="current-password"
+          required
+        />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Entrando..." : "Entrar"}
@@ -88,7 +97,7 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false);
 
   const toggleMin = (m: string) =>
-    setMinistries((p) => p.includes(m) ? p.filter((x) => x !== m) : [...p, m]);
+    setMinistries((p) => (p.includes(m) ? p.filter((x) => x !== m) : [...p, m]));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,16 +117,34 @@ function RegisterForm() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="reg-email">E-mail</Label>
-          <Input id="reg-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input
+            id="reg-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="reg-phone">Telefone</Label>
-          <Input id="reg-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" />
+          <Input
+            id="reg-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="(00) 00000-0000"
+          />
         </div>
       </div>
       <div>
         <Label htmlFor="reg-pass">Senha (mín. 6)</Label>
-        <Input id="reg-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+        <Input
+          id="reg-pass"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={6}
+        />
       </div>
       <div>
         <Label className="mb-1.5 block">Ministérios de interesse</Label>
@@ -143,7 +170,11 @@ function RegisterForm() {
         {loading ? "Cadastrando..." : "Criar minha conta"}
       </Button>
       <p className="text-[11px] text-muted-foreground text-center">
-        Novos cadastros entram como <Badge variant="secondary" className="text-[10px]">Membro</Badge>. A liderança pode promover a administrador depois.
+        Novos cadastros entram como{" "}
+        <Badge variant="secondary" className="text-[10px]">
+          Membro
+        </Badge>
+        . A liderança pode promover a administrador depois.
       </p>
     </form>
   );

@@ -27,12 +27,30 @@ import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-const categoryColor: Record<string, string> = {
+const staticColors: Record<string, string> = {
   Culto: "bg-primary text-primary-foreground",
   Reunião: "bg-success text-success-foreground",
   "Pequeno Grupo": "bg-gold text-gold-foreground",
   Conferência: "bg-destructive text-destructive-foreground",
   Ensaio: "bg-secondary text-secondary-foreground",
+};
+
+export const getCategoryColor = (category: string, categories: string[] = []): string => {
+  const staticColor = staticColors[category];
+  if (staticColor) return staticColor;
+
+  const extraColors = [
+    "bg-sky-600 text-white hover:bg-sky-700",
+    "bg-indigo-600 text-white hover:bg-indigo-700",
+    "bg-purple-600 text-white hover:bg-purple-700",
+    "bg-pink-600 text-white hover:bg-pink-700",
+    "bg-orange-600 text-white hover:bg-orange-700",
+    "bg-teal-600 text-white hover:bg-teal-700",
+  ];
+
+  const index = categories.indexOf(category);
+  if (index === -1) return "bg-muted text-muted-foreground";
+  return extraColors[index % extraColors.length];
 };
 
 export function Agenda() {
@@ -154,7 +172,7 @@ export function Agenda() {
                             onClick={() => setSelected(e)}
                             className={cn(
                               "w-full truncate rounded px-1 py-0.5 text-[10px] sm:text-[11px] font-medium text-left",
-                              categoryColor[e.category] ?? "bg-secondary text-secondary-foreground",
+                              getCategoryColor(e.category, state.eventCategories),
                             )}
                           >
                             {e.title}
@@ -175,8 +193,8 @@ export function Agenda() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-2">
-        {CATALOG.EVENT_CATEGORIES.map((c) => (
-          <Badge key={c} className={cn("font-normal", categoryColor[c])}>
+        {state.eventCategories.map((c) => (
+          <Badge key={c} className={cn("font-normal", getCategoryColor(c, state.eventCategories))}>
             {c}
           </Badge>
         ))}
@@ -188,7 +206,7 @@ export function Agenda() {
             <>
               <DialogHeader>
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  <Badge className={cn("w-fit", categoryColor[selected.category])}>
+                  <Badge className={cn("w-fit", getCategoryColor(selected.category, state.eventCategories))}>
                     {selected.category}
                   </Badge>
                 </div>
@@ -255,6 +273,9 @@ function EventDialog({
   onSuccess?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const eventCategories = useStore((s) => s.eventCategories);
+  const [showAddCat, setShowAddCat] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
   const [form, setForm] = useState<Omit<ChurchEvent, "id">>(
     () =>
       event ?? {
@@ -301,7 +322,16 @@ function EventDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) {
+          setShowAddCat(false);
+          setNewCatName("");
+        }
+      }}
+    >
       <DialogTrigger asChild>
         {trigger ?? (
           <Button className="gap-2">
@@ -349,18 +379,75 @@ function EventDialog({
           </div>
           <div>
             <Label>Categoria</Label>
-            <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATALOG.EVENT_CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {showAddCat ? (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nome da nova categoria"
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const name = newCatName.trim();
+                    if (!name) return;
+                    if (eventCategories.includes(name)) {
+                      toast.error("Esta categoria já existe");
+                      return;
+                    }
+                    store.set((s) => ({
+                      ...s,
+                      eventCategories: [...s.eventCategories, name],
+                    }));
+                    setForm({ ...form, category: name });
+                    setNewCatName("");
+                    setShowAddCat(false);
+                    toast.success("Categoria criada");
+                  }}
+                  className="bg-success hover:bg-success/90"
+                >
+                  Adicionar
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowAddCat(false);
+                    setNewCatName("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Select
+                  value={form.category}
+                  onValueChange={(v) => setForm({ ...form, category: v })}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {eventCategories.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  title="Criar nova categoria"
+                  onClick={() => setShowAddCat(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
           <div>
             <Label>Descrição</Label>

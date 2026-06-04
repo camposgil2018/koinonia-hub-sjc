@@ -314,6 +314,7 @@ type State = {
   googleCalendarId?: string;
   googleApiKey?: string;
   syncGoogleCalendar?: boolean;
+  eventCategories: string[];
 };
 
 const KEY = "koinonia-state-v2";
@@ -328,6 +329,7 @@ const initial: State = {
   googleCalendarId: "",
   googleApiKey: "",
   syncGoogleCalendar: false,
+  eventCategories: ["Culto", "Reunião", "Pequeno Grupo", "Conferência", "Ensaio"],
 };
 
 const load = (): State => {
@@ -335,7 +337,12 @@ const load = (): State => {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return initial;
-    return { ...initial, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...initial,
+      ...parsed,
+      eventCategories: parsed.eventCategories ?? initial.eventCategories,
+    };
   } catch {
     return initial;
   }

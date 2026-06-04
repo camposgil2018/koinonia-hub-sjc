@@ -1,27 +1,28 @@
-/* Migration: create app_state table and policies */
+/* Migration: create app_state table and open policies */
 
--- Create table to store singleton application state
+-- 1️⃣ Create table to store singleton application state
 CREATE TABLE IF NOT EXISTS public.app_state (
-    id text PRIMARY KEY,               -- always 'singleton'
-    state_json jsonb NOT NULL           -- JSON representation of the entire app state
+    id         TEXT PRIMARY KEY,   -- always 'singleton'
+    state_json JSONB NOT NULL      -- JSON containing the whole app state
 );
 
--- Insert initial row if it does not exist
+-- 2️⃣ Insert initial row if it does not exist
 INSERT INTO public.app_state (id, state_json)
 VALUES ('singleton', '{}'::jsonb)
 ON CONFLICT (id) DO NOTHING;
 
--- Enable row level security (required for policies)
+-- 3️⃣ Enable Row Level Security (required for policies)
 ALTER TABLE public.app_state ENABLE ROW LEVEL SECURITY;
 
--- Policy to allow anonymous users to SELECT (read) the state
+-- 4️⃣ Policy to allow anonymous users to SELECT (read) the state
 CREATE POLICY "public_select"
     ON public.app_state
     FOR SELECT
     USING (true);
 
--- Policy to allow anonymous users to INSERT/UPDATE (upsert) the state
+-- 5️⃣ Policy to allow anonymous users to INSERT/UPDATE (upsert) the state
 CREATE POLICY "public_upsert"
     ON public.app_state
-    FOR INSERT, UPDATE
+    FOR ALL
+    USING (true)
     WITH CHECK (true);

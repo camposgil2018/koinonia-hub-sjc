@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import logoIgreja from "@/assets/logo-igreja.png";
 import {
   Home,
   CalendarDays,
@@ -162,14 +163,11 @@ function BrandHeader() {
 
 function Logo({ className }: { className?: string }) {
   return (
-    <div
-      className={cn(
-        "rounded-md bg-gradient-to-br from-gold to-gold/60 flex items-center justify-center text-primary font-display font-bold",
-        className,
-      )}
-    >
-      K
-    </div>
+    <img
+      src={logoIgreja}
+      alt="Logo da Igreja"
+      className={cn("rounded-md object-contain", className)}
+    />
   );
 }
 

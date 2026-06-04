@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { fetchState, upsertState } from "./supabase";
 
 export type Role = "admin" | "member";
 export type User = {
@@ -339,6 +340,8 @@ let state: State = load();
 const listeners = new Set<() => void>();
 const save = () => {
   if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(state));
+  // Persistir no Supabase (não aguarda, falha será logada)
+  upsertState(state).catch((e) => console.error('Supabase upsert error:', e));
   listeners.forEach((l) => l());
 };
 
@@ -357,6 +360,15 @@ export const store = {
     save();
   },
 };
+
+// Inicializar estado a partir do Supabase (se houver)
+if (typeof window !== "undefined") {
+  fetchState().then((remote) => {
+    if (remote) {
+      store.set(() => ({ ...state, ...remote }));
+    }
+  }).catch((e) => console.warn('Supabase fetch error:', e));
+}
 
 export function useStore<T>(selector: (s: State) => T): T {
   return useSyncExternalStore(

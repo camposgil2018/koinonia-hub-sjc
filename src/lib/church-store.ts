@@ -325,9 +325,9 @@ const initial: State = {
   events: seedEvents,
   notices: seedNotices,
   unavailability: seedUnav,
-  googleCalendarId: "4b88cf74ed95360b5fc63320b942cbc57e04af8b425a63da19b5b52701cd0500",
-  googleApiKey: "AIzaSyD5ljz3iH8sSfWzq9pYpu--waAZHnkYHZQ",
-  syncGoogleCalendar: true,
+  googleCalendarId: "",
+  googleApiKey: "",
+  syncGoogleCalendar: false,
 };
 
 const load = (): State => {

@@ -1,4 +1,3 @@
-// Lovable sync trigger - Atualização da integração do Google Agenda
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, MapPin, Clock, Plus, Settings } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Clock, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useStore, store, uid, CATALOG, type ChurchEvent } from "@/lib/church-store";
 import { cn } from "@/lib/utils";
@@ -38,112 +35,19 @@ const categoryColor: Record<string, string> = {
   Ensaio: "bg-secondary text-secondary-foreground",
 };
 
-async function fetchGoogleCalendarEvents(calendarId: string, apiKey: string) {
-  if (!calendarId || !apiKey) return [];
-  const encodedId = encodeURIComponent(calendarId);
-  const now = new Date();
-  const timeMin = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
-  const timeMax = new Date(now.getFullYear(), now.getMonth() + 4, 1).toISOString();
-
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodedId}/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=250`;
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error("Erro ao buscar eventos do Google Agenda. Verifique as credenciais.");
-  }
-  const data = await response.json();
-  return data.items || [];
-}
-
-const mapGoogleCategory = (title: string): string => {
-  const t = (title || "").toLowerCase();
-  if (t.includes("culto")) return "Culto";
-  if (
-    t.includes("reunião") ||
-    t.includes("reuniao") ||
-    t.includes("encontro") ||
-    t.includes("oração")
-  )
-    return "Reunião";
-  if (t.includes("ensaio") || t.includes("música") || t.includes("musica") || t.includes("louvor"))
-    return "Ensaio";
-  if (t.includes("grupo") || t.includes("pg") || t.includes("célula") || t.includes("celula"))
-    return "Pequeno Grupo";
-  if (
-    t.includes("conferência") ||
-    t.includes("conferencia") ||
-    t.includes("congresso") ||
-    t.includes("seminário") ||
-    t.includes("seminario")
-  )
-    return "Conferência";
-  return "Culto"; // Padrão
-};
-
-interface GoogleEvent {
-  id: string;
-  summary?: string;
-  description?: string;
-  location?: string;
-  start?: {
-    dateTime?: string;
-    date?: string;
-  };
-}
-
-const mapGoogleEvent = (gEvent: GoogleEvent): ChurchEvent => {
-  const start = gEvent.start?.dateTime || gEvent.start?.date || "";
-  const dateStr = start.slice(0, 10);
-
-  let timeStr = "19:00";
-  if (gEvent.start?.dateTime) {
-    try {
-      const d = new Date(gEvent.start.dateTime);
-      timeStr = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    } catch {
-      // Ignorar erro
-    }
-  } else {
-    timeStr = "Dia todo";
-  }
-
-  return {
-    id: `gcal-${gEvent.id}`,
-    title: gEvent.summary || "Evento sem título",
-    date: dateStr,
-    time: timeStr,
-    location: gEvent.location || "Local não informado",
-    description: gEvent.description || "Importado do Google Agenda.",
-    category: mapGoogleCategory(gEvent.summary),
-  };
-};
-
 export function Agenda() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
   const isAdmin = me.role === "admin" || me.role === "moderator";
 
-  const { data: gcalEvents = [], error: gcalError } = useQuery({
-    queryKey: ["googleCalendarEvents", state.googleCalendarId, state.googleApiKey],
-    queryFn: () =>
-      fetchGoogleCalendarEvents(state.googleCalendarId || "", state.googleApiKey || ""),
-    enabled: !!(state.syncGoogleCalendar && state.googleCalendarId && state.googleApiKey),
-    staleTime: 1000 * 60 * 5,
-  });
+  const allEvents = state.events;
 
-  useEffect(() => {
-    if (gcalError) {
-      toast.error("Não foi possível sincronizar com o Google Agenda. Verifique as credenciais.");
-    }
-  }, [gcalError]);
-
-  const allEvents = useMemo(() => {
-    if (!state.syncGoogleCalendar || gcalEvents.length === 0) {
-      return state.events;
-    }
-    const mappedGcal = gcalEvents.map(mapGoogleEvent);
-    return [...state.events, ...mappedGcal];
-  }, [state.events, state.syncGoogleCalendar, gcalEvents]);
+  const removeEvent = (eventId: string) => {
+    if (!confirm("Tem certeza que deseja remover este evento da agenda?")) return;
+    store.set((s) => ({ ...s, events: s.events.filter((e) => e.id !== eventId) }));
+    toast.success("Evento removido da agenda");
+    setSelected(null);
+  };
 
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
@@ -188,8 +92,7 @@ export function Agenda() {
           </p>
         </div>
         <div className="flex gap-2">
-          {isAdmin && <GoogleCalendarSettingsDialog />}
-          {isAdmin && <NewEventDialog />}
+          {isAdmin && <EventDialog mode="create" />}
         </div>
       </div>
 
@@ -288,14 +191,6 @@ export function Agenda() {
                   <Badge className={cn("w-fit", categoryColor[selected.category])}>
                     {selected.category}
                   </Badge>
-                  {selected.id.startsWith("gcal-") && (
-                    <Badge
-                      variant="outline"
-                      className="w-fit border-blue-400 text-blue-500 bg-blue-50/50"
-                    >
-                      Google Agenda
-                    </Badge>
-                  )}
                 </div>
                 <DialogTitle className="font-display text-2xl mt-2">{selected.title}</DialogTitle>
               </DialogHeader>
@@ -315,6 +210,30 @@ export function Agenda() {
                   {selected.location}
                 </div>
                 <p className="pt-2 leading-relaxed">{selected.description}</p>
+                {isAdmin && (
+                  <div className="flex items-center gap-2 pt-4 border-t border-border mt-4 justify-end">
+                    <EventDialog
+                      mode="edit"
+                      event={selected}
+                      onSuccess={() => setSelected(null)}
+                      trigger={
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Button>
+                      }
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => removeEvent(selected.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -324,46 +243,76 @@ export function Agenda() {
   );
 }
 
-function NewEventDialog() {
+function EventDialog({
+  mode,
+  event,
+  trigger,
+  onSuccess,
+}: {
+  mode: "create" | "edit";
+  event?: ChurchEvent;
+  trigger?: React.ReactNode;
+  onSuccess?: () => void;
+}) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Omit<ChurchEvent, "id">>({
-    title: "",
-    date: "",
-    time: "19:00",
-    location: "",
-    description: "",
-    category: "Culto",
-  });
+  const [form, setForm] = useState<Omit<ChurchEvent, "id">>(
+    () =>
+      event ?? {
+        title: "",
+        date: "",
+        time: "19:00",
+        location: "",
+        description: "",
+        category: "Culto",
+      },
+  );
+
+  useEffect(() => {
+    if (open && event) {
+      setForm(event);
+    }
+  }, [open, event]);
 
   const save = () => {
     if (!form.title || !form.date || !form.location) {
       toast.error("Preencha título, data e local");
       return;
     }
-    store.set((s) => ({ ...s, events: [...s.events, { ...form, id: uid() }] }));
-    toast.success("Evento adicionado à agenda");
-    setForm({
-      title: "",
-      date: "",
-      time: "19:00",
-      location: "",
-      description: "",
-      category: "Culto",
-    });
+    if (mode === "create") {
+      store.set((s) => ({ ...s, events: [...s.events, { ...form, id: uid() }] }));
+      toast.success("Evento adicionado à agenda");
+      setForm({
+        title: "",
+        date: "",
+        time: "19:00",
+        location: "",
+        description: "",
+        category: "Culto",
+      });
+    } else {
+      store.set((s) => ({
+        ...s,
+        events: s.events.map((e) => (e.id === event!.id ? { ...e, ...form } : e)),
+      }));
+      toast.success("Evento atualizado");
+      onSuccess?.();
+    }
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Adicionar evento
-        </Button>
+        {trigger ?? (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Adicionar evento
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Novo evento</DialogTitle>
+          <DialogTitle>{mode === "create" ? "Novo evento" : "Editar evento"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
           <div>
@@ -426,101 +375,7 @@ function NewEventDialog() {
           <Button variant="ghost" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button onClick={save}>Adicionar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function GoogleCalendarSettingsDialog() {
-  const state = useStore((s) => s);
-  const [open, setOpen] = useState(false);
-  const [sync, setSync] = useState(state.syncGoogleCalendar ?? false);
-  const [calendarId, setCalendarId] = useState(state.googleCalendarId ?? "");
-  const [apiKey, setApiKey] = useState(state.googleApiKey ?? "");
-
-  useEffect(() => {
-    if (open) {
-      setSync(state.syncGoogleCalendar ?? false);
-      setCalendarId(state.googleCalendarId ?? "");
-      setApiKey(state.googleApiKey ?? "");
-    }
-  }, [open, state]);
-
-  const save = () => {
-    if (sync && (!calendarId || !apiKey)) {
-      toast.error("Para habilitar a sincronização, preencha o Calendar ID e a API Key.");
-      return;
-    }
-    store.set((s) => ({
-      ...s,
-      syncGoogleCalendar: sync,
-      googleCalendarId: calendarId.trim(),
-      googleApiKey: apiKey.trim(),
-    }));
-    toast.success("Configurações do Google Agenda atualizadas.");
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Settings className="h-4 w-4" />
-          Sincronizar Google Agenda
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Integração com Google Agenda</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-sm font-medium">Sincronizar Eventos</Label>
-              <div className="text-[12px] text-muted-foreground">
-                Habilitar sincronização com calendário do Google
-              </div>
-            </div>
-            <Switch checked={sync} onCheckedChange={setSync} />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="gcal-id">ID do Calendário do Google</Label>
-            <Input
-              id="gcal-id"
-              placeholder="exemplo@group.calendar.google.com"
-              value={calendarId}
-              onChange={(e) => setCalendarId(e.target.value)}
-              disabled={!sync}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              Use o e-mail do calendário público ou "primary" se for o principal da conta.
-            </p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="gcal-key">Chave de API (API Key)</Label>
-            <Input
-              id="gcal-key"
-              type="password"
-              placeholder="Sua Google API Key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              disabled={!sync}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              Chave com permissão de leitura para a "Google Calendar API" no console do Google
-              Cloud.
-            </p>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={save}>Salvar Configurações</Button>
+          <Button onClick={save}>{mode === "create" ? "Adicionar" : "Salvar"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

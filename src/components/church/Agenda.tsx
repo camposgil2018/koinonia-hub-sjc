@@ -1,3 +1,4 @@
+// Lovable sync trigger - Atualização da integração do Google Agenda
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

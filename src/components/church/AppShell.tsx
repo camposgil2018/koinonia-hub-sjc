@@ -119,8 +119,10 @@ export function AppShell({
           </div>
           <div className="ml-auto flex items-center gap-2">
             <RoleBadge />
+            <NotificationsBell setTab={setTab} />
             <UserMenu />
           </div>
+
         </header>
 
         <main className="flex-1 px-4 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8 max-w-6xl w-full mx-auto">

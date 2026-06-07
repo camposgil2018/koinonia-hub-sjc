@@ -463,14 +463,31 @@ function UnavailabilityPanel() {
       toast.error("Data final deve ser após a inicial");
       return;
     }
-    store.set((s) => ({
-      ...s,
-      unavailability: [...s.unavailability, { id: uid(), userId: me.id, start, end, reason }],
-    }));
+    let removedCount = 0;
+    store.set((s) => {
+      const schedules = s.schedules.map((sch) => {
+        if (sch.date < start || sch.date > end) return sch;
+        const before = sch.assignments.length;
+        const filtered = sch.assignments.filter((a) => a.userId !== me.id);
+        removedCount += before - filtered.length;
+        return { ...sch, assignments: filtered };
+      });
+      return {
+        ...s,
+        schedules,
+        unavailability: [...s.unavailability, { id: uid(), userId: me.id, start, end, reason }],
+      };
+    });
     setStart("");
     setEnd("");
     setReason("");
-    toast.success("Indisponibilidade registrada");
+    if (removedCount > 0) {
+      toast.success(
+        `Indisponibilidade registrada. Você foi removido de ${removedCount} escalação(ões) no período.`,
+      );
+    } else {
+      toast.success("Indisponibilidade registrada");
+    }
   };
 
   return (

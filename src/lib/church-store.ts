@@ -50,6 +50,18 @@ export type Notice = {
   author: string;
   pinned: boolean;
 };
+export type AppNotification = {
+  id: string;
+  userId: string;
+  type: "schedule" | "notice";
+  title: string;
+  body: string;
+  link: "schedules" | "notices";
+  refId: string;
+  date: string;
+  read: boolean;
+};
+
 
 const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Recepção", "Intercessão"] as const;
 const NOTICE_CATEGORIES = ["Geral", "Jovens", "Casais", "Liderança"] as const;

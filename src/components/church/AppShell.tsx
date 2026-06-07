@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import logoIgreja from "@/assets/logo-igreja.png";
 import {
   Home,
@@ -9,9 +9,13 @@ import {
   ChevronDown,
   UserCog,
   LogOut,
+  Bell,
+  Check,
+  CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStore, auth } from "@/lib/church-store";
+import { useStore, auth, notifications as notifApi } from "@/lib/church-store";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

@@ -292,6 +292,12 @@ function NewScheduleDialog() {
       toast.error("Adicione ao menos uma escalação");
       return;
     }
+    const conflict = assignments.find((a) => isUserUnavailable(a.userId, date, unav));
+    if (conflict) {
+      const u = users.find((x) => x.id === conflict.userId);
+      toast.error(`${u?.name ?? "Voluntário"} está indisponível nesta data. Remova-o(a) antes de salvar.`);
+      return;
+    }
     store.set((s) => ({
       ...s,
       schedules: [...s.schedules, { id: uid(), title, date, time, assignments }],

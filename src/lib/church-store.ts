@@ -357,7 +357,9 @@ const load = (): State => {
       ...initial,
       ...parsed,
       eventCategories: parsed.eventCategories ?? initial.eventCategories,
+      notifications: parsed.notifications ?? [],
     };
+
   } catch {
     return initial;
   }

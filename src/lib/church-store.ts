@@ -475,6 +475,33 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export const isUserUnavailable = (userId: string, date: string, unav: Unavailability[]) =>
   unav.some((u) => u.userId === userId && date >= u.start && date <= u.end);
 
+export const notifications = {
+  markRead: (id: string) =>
+    store.set(
+      (s) => ({
+        ...s,
+        notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      }),
+      { silent: true },
+    ),
+  markAllRead: (userId: string) =>
+    store.set(
+      (s) => ({
+        ...s,
+        notifications: s.notifications.map((n) =>
+          n.userId === userId ? { ...n, read: true } : n,
+        ),
+      }),
+      { silent: true },
+    ),
+  clear: (userId: string) =>
+    store.set(
+      (s) => ({ ...s, notifications: s.notifications.filter((n) => n.userId !== userId) }),
+      { silent: true },
+    ),
+};
+
+
 // ---------- AUTH ----------
 export const auth = {
   login: (email: string, password: string): { ok: true } | { ok: false; error: string } => {

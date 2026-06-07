@@ -323,6 +323,7 @@ type State = {
   events: ChurchEvent[];
   notices: Notice[];
   unavailability: Unavailability[];
+  notifications: AppNotification[];
   googleCalendarId?: string;
   googleApiKey?: string;
   syncGoogleCalendar?: boolean;
@@ -338,11 +339,13 @@ const initial: State = {
   events: seedEvents,
   notices: seedNotices,
   unavailability: seedUnav,
+  notifications: [],
   googleCalendarId: "",
   googleApiKey: "",
   syncGoogleCalendar: false,
   eventCategories: ["Culto", "Reunião", "Pequeno Grupo", "Conferência", "Ensaio"],
 };
+
 
 const load = (): State => {
   if (typeof window === "undefined") return initial;

@@ -270,10 +270,13 @@ function NewScheduleDialog() {
       toast.error("Informe função e voluntário");
       return;
     }
-    if (date && isUserUnavailable(pickedUser, date, unav)) {
-      toast.warning("Aviso: este voluntário está indisponível nesta data", {
-        description: "A escalação foi adicionada mesmo assim. Revise antes de salvar.",
-      });
+    if (!date) {
+      toast.error("Selecione a data da escala antes de incluir voluntários");
+      return;
+    }
+    if (isUserUnavailable(pickedUser, date, unav)) {
+      toast.error("Este voluntário está indisponível nesta data e não pode ser escalado");
+      return;
     }
     setAssignments((a) => [...a, { role: roleName, userId: pickedUser, ministry, status: "pending" }]);
     setRoleName("");
@@ -287,6 +290,12 @@ function NewScheduleDialog() {
     }
     if (assignments.length === 0) {
       toast.error("Adicione ao menos uma escalação");
+      return;
+    }
+    const conflict = assignments.find((a) => isUserUnavailable(a.userId, date, unav));
+    if (conflict) {
+      const u = users.find((x) => x.id === conflict.userId);
+      toast.error(`${u?.name ?? "Voluntário"} está indisponível nesta data. Remova-o(a) antes de salvar.`);
       return;
     }
     store.set((s) => ({
@@ -366,9 +375,9 @@ function NewScheduleDialog() {
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((u) => {
-                      const blocked = date && isUserUnavailable(u.id, date, unav);
+                      const blocked = !!date && isUserUnavailable(u.id, date, unav);
                       return (
-                        <SelectItem key={u.id} value={u.id}>
+                        <SelectItem key={u.id} value={u.id} disabled={blocked}>
                           <span className="flex items-center gap-2">
                             {u.name}
                             {blocked && (
@@ -454,14 +463,31 @@ function UnavailabilityPanel() {
       toast.error("Data final deve ser após a inicial");
       return;
     }
-    store.set((s) => ({
-      ...s,
-      unavailability: [...s.unavailability, { id: uid(), userId: me.id, start, end, reason }],
-    }));
+    let removedCount = 0;
+    store.set((s) => {
+      const schedules = s.schedules.map((sch) => {
+        if (sch.date < start || sch.date > end) return sch;
+        const before = sch.assignments.length;
+        const filtered = sch.assignments.filter((a) => a.userId !== me.id);
+        removedCount += before - filtered.length;
+        return { ...sch, assignments: filtered };
+      });
+      return {
+        ...s,
+        schedules,
+        unavailability: [...s.unavailability, { id: uid(), userId: me.id, start, end, reason }],
+      };
+    });
     setStart("");
     setEnd("");
     setReason("");
-    toast.success("Indisponibilidade registrada");
+    if (removedCount > 0) {
+      toast.success(
+        `Indisponibilidade registrada. Você foi removido de ${removedCount} escalação(ões) no período.`,
+      );
+    } else {
+      toast.success("Indisponibilidade registrada");
+    }
   };
 
   return (

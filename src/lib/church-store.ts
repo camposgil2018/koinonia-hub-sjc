@@ -50,6 +50,18 @@ export type Notice = {
   author: string;
   pinned: boolean;
 };
+export type AppNotification = {
+  id: string;
+  userId: string;
+  type: "schedule" | "notice";
+  title: string;
+  body: string;
+  link: "schedules" | "notices";
+  refId: string;
+  date: string;
+  read: boolean;
+};
+
 
 const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Recepção", "Intercessão"] as const;
 const NOTICE_CATEGORIES = ["Geral", "Jovens", "Casais", "Liderança"] as const;
@@ -311,6 +323,7 @@ type State = {
   events: ChurchEvent[];
   notices: Notice[];
   unavailability: Unavailability[];
+  notifications: AppNotification[];
   googleCalendarId?: string;
   googleApiKey?: string;
   syncGoogleCalendar?: boolean;
@@ -326,11 +339,13 @@ const initial: State = {
   events: seedEvents,
   notices: seedNotices,
   unavailability: seedUnav,
+  notifications: [],
   googleCalendarId: "",
   googleApiKey: "",
   syncGoogleCalendar: false,
   eventCategories: ["Culto", "Reunião", "Pequeno Grupo", "Conferência", "Ensaio"],
 };
+
 
 const load = (): State => {
   if (typeof window === "undefined") return initial;
@@ -342,7 +357,9 @@ const load = (): State => {
       ...initial,
       ...parsed,
       eventCategories: parsed.eventCategories ?? initial.eventCategories,
+      notifications: parsed.notifications ?? [],
     };
+
   } catch {
     return initial;
   }
@@ -357,10 +374,66 @@ const save = () => {
   listeners.forEach((l) => l());
 };
 
+function diffNotify(prev: State, next: State) {
+  const created: AppNotification[] = [];
+  const now = new Date().toISOString();
+  const actorId = next.currentUserId;
+
+  const prevNoticeIds = new Set(prev.notices.map((n) => n.id));
+  for (const n of next.notices) {
+    if (prevNoticeIds.has(n.id)) continue;
+    for (const u of next.users) {
+      if (u.id === actorId) continue;
+      created.push({
+        id: uid(),
+        userId: u.id,
+        type: "notice",
+        title: "Novo aviso: " + n.title,
+        body: n.content.length > 140 ? n.content.slice(0, 140) + "…" : n.content,
+        link: "notices",
+        refId: n.id,
+        date: now,
+        read: false,
+      });
+    }
+  }
+
+  const prevSchedById = new Map(prev.schedules.map((s) => [s.id, s]));
+  for (const s of next.schedules) {
+    const old = prevSchedById.get(s.id);
+    const oldUserIds = new Set(old ? old.assignments.map((a) => a.userId) : []);
+    for (const a of s.assignments) {
+      if (oldUserIds.has(a.userId)) continue;
+      if (a.userId === actorId) continue;
+      const d = new Date(s.date + "T12:00:00").toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "short",
+      });
+      created.push({
+        id: uid(),
+        userId: a.userId,
+        type: "schedule",
+        title: "Você foi escalado",
+        body: `${s.title} • ${d} ${s.time} — ${a.ministry} (${a.role})`,
+        link: "schedules",
+        refId: s.id,
+        date: now,
+        read: false,
+      });
+    }
+  }
+
+  if (created.length) {
+    state = { ...state, notifications: [...created, ...state.notifications].slice(0, 200) };
+  }
+}
+
 export const store = {
   get: () => state,
-  set: (updater: (s: State) => State) => {
-    state = updater(state);
+  set: (updater: (s: State) => State, opts?: { silent?: boolean }) => {
+    const prev = state;
+    state = updater(prev);
+    if (!opts?.silent) diffNotify(prev, state);
     save();
   },
   subscribe: (l: () => void) => {
@@ -377,13 +450,12 @@ export const store = {
 if (typeof window !== "undefined") {
   fetchState().then((remote) => {
     if (remote && remote.users && remote.users.length > 0) {
-      // O estado remoto tem dados reais — usar como base,
-      // mas preservar o currentUserId local (login é por dispositivo)
       const localUserId = state.currentUserId;
-      store.set(() => ({ ...initial, ...remote, currentUserId: localUserId }));
+      store.set(() => ({ ...initial, ...remote, currentUserId: localUserId }), { silent: true });
     }
   }).catch((e) => console.warn('Supabase fetch error:', e));
 }
+
 
 export function useStore<T>(selector: (s: State) => T): T {
   return useSyncExternalStore(
@@ -402,6 +474,33 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 
 export const isUserUnavailable = (userId: string, date: string, unav: Unavailability[]) =>
   unav.some((u) => u.userId === userId && date >= u.start && date <= u.end);
+
+export const notifications = {
+  markRead: (id: string) =>
+    store.set(
+      (s) => ({
+        ...s,
+        notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      }),
+      { silent: true },
+    ),
+  markAllRead: (userId: string) =>
+    store.set(
+      (s) => ({
+        ...s,
+        notifications: s.notifications.map((n) =>
+          n.userId === userId ? { ...n, read: true } : n,
+        ),
+      }),
+      { silent: true },
+    ),
+  clear: (userId: string) =>
+    store.set(
+      (s) => ({ ...s, notifications: s.notifications.filter((n) => n.userId !== userId) }),
+      { silent: true },
+    ),
+};
+
 
 // ---------- AUTH ----------
 export const auth = {

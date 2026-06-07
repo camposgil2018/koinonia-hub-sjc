@@ -369,9 +369,9 @@ function NewScheduleDialog() {
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((u) => {
-                      const blocked = date && isUserUnavailable(u.id, date, unav);
+                      const blocked = !!date && isUserUnavailable(u.id, date, unav);
                       return (
-                        <SelectItem key={u.id} value={u.id}>
+                        <SelectItem key={u.id} value={u.id} disabled={blocked}>
                           <span className="flex items-center gap-2">
                             {u.name}
                             {blocked && (

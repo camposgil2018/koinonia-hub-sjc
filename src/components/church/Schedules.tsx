@@ -270,10 +270,13 @@ function NewScheduleDialog() {
       toast.error("Informe função e voluntário");
       return;
     }
-    if (date && isUserUnavailable(pickedUser, date, unav)) {
-      toast.warning("Aviso: este voluntário está indisponível nesta data", {
-        description: "A escalação foi adicionada mesmo assim. Revise antes de salvar.",
-      });
+    if (!date) {
+      toast.error("Selecione a data da escala antes de incluir voluntários");
+      return;
+    }
+    if (isUserUnavailable(pickedUser, date, unav)) {
+      toast.error("Este voluntário está indisponível nesta data e não pode ser escalado");
+      return;
     }
     setAssignments((a) => [...a, { role: roleName, userId: pickedUser, ministry, status: "pending" }]);
     setRoleName("");

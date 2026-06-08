@@ -5,9 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { auth, CATALOG } from "@/lib/church-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Mail, KeyRound, Copy, CheckCircle2 } from "lucide-react";
 import logoIgreja from "@/assets/logo-igreja.png";
 
 export function Auth() {

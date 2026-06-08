@@ -5,9 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { auth, CATALOG } from "@/lib/church-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Mail, KeyRound, Copy, CheckCircle2 } from "lucide-react";
 import logoIgreja from "@/assets/logo-igreja.png";
 
 export function Auth() {
@@ -50,6 +59,7 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +85,16 @@ function LoginForm() {
         />
       </div>
       <div>
-        <Label htmlFor="login-password">Senha</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="login-password">Senha</Label>
+          <button
+            type="button"
+            onClick={() => setForgotOpen(true)}
+            className="text-xs text-primary hover:underline font-medium"
+          >
+            Esqueci minha senha
+          </button>
+        </div>
         <Input
           id="login-password"
           type="password"
@@ -89,7 +108,143 @@ function LoginForm() {
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Entrando..." : "Entrar"}
       </Button>
+      <ForgotPasswordDialog
+        open={forgotOpen}
+        onOpenChange={setForgotOpen}
+        initialEmail={email}
+        onResetDone={(newPass) => setPassword(newPass)}
+      />
     </form>
+  );
+}
+
+function ForgotPasswordDialog({
+  open,
+  onOpenChange,
+  initialEmail,
+  onResetDone,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initialEmail: string;
+  onResetDone: (tempPassword: string) => void;
+}) {
+  const [email, setEmail] = useState(initialEmail);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ tempPassword: string; userName: string } | null>(null);
+
+  // sincroniza email inicial ao abrir
+  if (open && email === "" && initialEmail) {
+    setEmail(initialEmail);
+  }
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const res = auth.requestPasswordReset(email);
+    setLoading(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    setResult({ tempPassword: res.tempPassword, userName: res.userName });
+    toast.success("E-mail de redefinição enviado!");
+  };
+
+  const close = () => {
+    if (result) onResetDone(result.tempPassword);
+    setResult(null);
+    setEmail("");
+    onOpenChange(false);
+  };
+
+  const copyPass = async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.tempPassword);
+      toast.success("Senha copiada!");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : close())}>
+      <DialogContent className="sm:max-w-md">
+        {!result ? (
+          <>
+            <DialogHeader>
+              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <KeyRound className="h-6 w-6 text-primary" />
+              </div>
+              <DialogTitle className="text-center">Redefinir senha</DialogTitle>
+              <DialogDescription className="text-center">
+                Informe seu e-mail cadastrado. Enviaremos uma senha temporária para você acessar.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={submit} className="space-y-4">
+              <div>
+                <Label htmlFor="forgot-email">E-mail</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  autoComplete="email"
+                  required
+                  autoFocus
+                />
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button type="button" variant="ghost" onClick={close}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  {loading ? "Enviando..." : "Enviar e-mail"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              </div>
+              <DialogTitle className="text-center">E-mail enviado!</DialogTitle>
+              <DialogDescription className="text-center">
+                Olá, <strong>{result.userName}</strong>. Enviamos uma senha temporária para{" "}
+                <strong>{email}</strong>. Use-a para entrar e altere depois em seu perfil.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Sua senha temporária
+              </Label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-md bg-background border px-3 py-2 font-mono text-base tracking-widest">
+                  {result.tempPassword}
+                </code>
+                <Button type="button" size="icon" variant="outline" onClick={copyPass}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Em produção esta senha chegaria apenas por e-mail. Como o app ainda não tem servidor
+                de e-mail configurado, ela é exibida aqui.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={close} className="w-full">
+                Usar esta senha para entrar
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

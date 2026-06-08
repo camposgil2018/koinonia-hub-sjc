@@ -540,4 +540,39 @@ export const auth = {
     return { ok: true };
   },
   logout: () => store.set((s) => ({ ...s, currentUserId: null })),
+  requestPasswordReset: (
+    email: string,
+  ): { ok: true; tempPassword: string; userName: string } | { ok: false; error: string } => {
+    const e = email.trim().toLowerCase();
+    const user = state.users.find((u) => u.email.toLowerCase() === e);
+    if (!user) return { ok: false, error: "E-mail não cadastrado" };
+    const tempPassword =
+      Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6).toUpperCase();
+    store.set(
+      (s) => ({
+        ...s,
+        users: s.users.map((u) => (u.id === user.id ? { ...u, password: tempPassword } : u)),
+      }),
+      { silent: true },
+    );
+    return { ok: true, tempPassword, userName: user.name };
+  },
+  changePassword: (
+    userId: string,
+    current: string,
+    next: string,
+  ): { ok: true } | { ok: false; error: string } => {
+    const user = state.users.find((u) => u.id === userId);
+    if (!user) return { ok: false, error: "Usuário não encontrado" };
+    if (user.password !== current) return { ok: false, error: "Senha atual incorreta" };
+    if (next.length < 6) return { ok: false, error: "A nova senha deve ter no mínimo 6 caracteres" };
+    store.set(
+      (s) => ({
+        ...s,
+        users: s.users.map((u) => (u.id === userId ? { ...u, password: next } : u)),
+      }),
+      { silent: true },
+    );
+    return { ok: true };
+  },
 };

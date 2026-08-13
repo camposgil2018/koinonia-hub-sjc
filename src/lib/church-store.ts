@@ -631,3 +631,46 @@ export const auth = {
     return { ok: true };
   },
 };
+
+// ---------- PEDIDOS DE ORAÇÃO ----------
+export const prayers = {
+  add: (data: { title: string; content: string; isPrivate: boolean }) => {
+    const me = state.users.find((u) => u.id === state.currentUserId);
+    const item: PrayerRequest = {
+      id: uid(),
+      authorId: me?.id ?? null,
+      authorName: me?.name ?? "Anônimo",
+      title: data.title.trim().slice(0, 120),
+      content: data.content.trim().slice(0, 1000),
+      status: "novo",
+      isPrivate: data.isPrivate,
+      date: new Date().toISOString().slice(0, 10),
+      prayedBy: [],
+    };
+    store.set((s) => ({ ...s, prayers: [item, ...s.prayers] }), { silent: true });
+  },
+  update: (id: string, patch: Partial<PrayerRequest>) =>
+    store.set(
+      (s) => ({ ...s, prayers: s.prayers.map((p) => (p.id === id ? { ...p, ...patch } : p)) }),
+      { silent: true },
+    ),
+  remove: (id: string) =>
+    store.set((s) => ({ ...s, prayers: s.prayers.filter((p) => p.id !== id) }), { silent: true }),
+  togglePray: (id: string, userId: string) =>
+    store.set(
+      (s) => ({
+        ...s,
+        prayers: s.prayers.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                prayedBy: p.prayedBy.includes(userId)
+                  ? p.prayedBy.filter((x) => x !== userId)
+                  : [...p.prayedBy, userId],
+              }
+            : p,
+        ),
+      }),
+      { silent: true },
+    ),
+};

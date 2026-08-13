@@ -6,6 +6,7 @@ import { Dashboard } from "@/components/church/Dashboard";
 import { Schedules } from "@/components/church/Schedules";
 import { Agenda } from "@/components/church/Agenda";
 import { Notices } from "@/components/church/Notices";
+import { Prayers } from "@/components/church/Prayers";
 import { Members } from "@/components/church/Members";
 import { Auth } from "@/components/church/Auth";
 import { useStore } from "@/lib/church-store";
@@ -63,6 +64,7 @@ function Index() {
         {tab === "schedules" && <Schedules />}
         {tab === "agenda" && <Agenda />}
         {tab === "notices" && <Notices />}
+        {tab === "prayers" && <Prayers />}
         {tab === "members" && me.role === "admin" && <Members />}
       </AppShell>
       <Toaster position="top-right" richColors />

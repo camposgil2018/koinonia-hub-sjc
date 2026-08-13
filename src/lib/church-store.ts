@@ -61,6 +61,20 @@ export type AppNotification = {
   date: string;
   read: boolean;
 };
+export type ContactType = "congregado" | "visitante";
+export type Contact = {
+  id: string;
+  name: string;
+  type: ContactType;
+  phone?: string;
+  email?: string;
+  birthDate?: string;
+  address?: string;
+  firstVisit: string;
+  invitedBy?: string;
+  followedUp: boolean;
+  notes?: string;
+};
 export type PrayerStatus = "novo" | "orando" | "respondido";
 export type PrayerRequest = {
   id: string;
@@ -367,6 +381,39 @@ const seedPrayers: PrayerRequest[] = [
   },
 ];
 
+const seedContacts: Contact[] = [
+  {
+    id: "c1",
+    name: "Fernanda Lima",
+    type: "visitante",
+    phone: "(12) 99123-4567",
+    email: "fernanda@email.com",
+    firstVisit: iso(addDays(today, -3)),
+    invitedBy: "Carla Ribeiro",
+    followedUp: false,
+    notes: "Primeira visita no culto da família.",
+  },
+  {
+    id: "c2",
+    name: "Marcos Antunes",
+    type: "congregado",
+    phone: "(12) 98888-1122",
+    firstVisit: iso(addDays(today, -120)),
+    followedUp: true,
+    notes: "Frequenta há 4 meses, interesse no ministério de mídia.",
+  },
+  {
+    id: "c3",
+    name: "Juliana e Pedro Reis",
+    type: "visitante",
+    phone: "(12) 97777-3344",
+    firstVisit: iso(addDays(today, -10)),
+    invitedBy: "Mariana Costa",
+    followedUp: true,
+    notes: "Casal recém-chegado à cidade.",
+  },
+];
+
 type State = {
   currentUserId: string | null;
   users: User[];
@@ -376,6 +423,7 @@ type State = {
   unavailability: Unavailability[];
   notifications: AppNotification[];
   prayers: PrayerRequest[];
+  contacts: Contact[];
   googleCalendarId?: string;
   googleApiKey?: string;
   syncGoogleCalendar?: boolean;
@@ -393,6 +441,7 @@ const initial: State = {
   unavailability: seedUnav,
   notifications: [],
   prayers: seedPrayers,
+  contacts: seedContacts,
   googleCalendarId: "",
   googleApiKey: "",
   syncGoogleCalendar: false,
@@ -412,6 +461,7 @@ const load = (): State => {
       eventCategories: parsed.eventCategories ?? initial.eventCategories,
       notifications: parsed.notifications ?? [],
       prayers: parsed.prayers ?? initial.prayers,
+      contacts: parsed.contacts ?? initial.contacts,
     };
 
 
@@ -673,4 +723,19 @@ export const prayers = {
       }),
       { silent: true },
     ),
+};
+
+// ---------- CONGREGADOS E VISITANTES ----------
+export const contacts = {
+  add: (data: Omit<Contact, "id">) =>
+    store.set((s) => ({ ...s, contacts: [{ ...data, id: uid() }, ...s.contacts] }), {
+      silent: true,
+    }),
+  update: (id: string, patch: Partial<Contact>) =>
+    store.set(
+      (s) => ({ ...s, contacts: s.contacts.map((c) => (c.id === id ? { ...c, ...patch } : c)) }),
+      { silent: true },
+    ),
+  remove: (id: string) =>
+    store.set((s) => ({ ...s, contacts: s.contacts.filter((c) => c.id !== id) }), { silent: true }),
 };

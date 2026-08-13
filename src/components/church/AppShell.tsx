@@ -12,6 +12,7 @@ import {
   Bell,
   Check,
   CalendarCheck,
+  HandHeart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore, auth, notifications as notifApi } from "@/lib/church-store";
@@ -27,13 +28,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
-export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "members";
+export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "prayers" | "members";
 
 const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean }[] = [
   { id: "dashboard", label: "Início", icon: Home },
   { id: "schedules", label: "Escalas", icon: Users },
   { id: "agenda", label: "Agenda", icon: CalendarDays },
   { id: "notices", label: "Avisos", icon: Megaphone },
+  { id: "prayers", label: "Oração", icon: HandHeart },
   { id: "members", label: "Membros", icon: UserCog, adminOnly: true },
 ];
 
@@ -130,7 +132,7 @@ export function AppShell({
         </main>
 
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur">
-          <div className={cn("grid", NAV.length === 5 ? "grid-cols-5" : "grid-cols-4")}>
+          <div className="grid" style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))` }}>
             {NAV.map((item) => {
               const Icon = item.icon;
               const active = tab === item.id;

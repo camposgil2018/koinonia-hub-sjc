@@ -61,6 +61,20 @@ export type AppNotification = {
   date: string;
   read: boolean;
 };
+export type PrayerStatus = "novo" | "orando" | "respondido";
+export type PrayerRequest = {
+  id: string;
+  authorId: string | null;
+  authorName: string;
+  title: string;
+  content: string;
+  status: PrayerStatus;
+  isPrivate: boolean;
+  date: string;
+  prayedBy: string[];
+};
+
+
 
 
 const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Recepção", "Intercessão"] as const;
@@ -316,6 +330,43 @@ const seedUnav: Unavailability[] = [
   },
 ];
 
+
+const seedPrayers: PrayerRequest[] = [
+  {
+    id: "p1",
+    authorId: "u4",
+    authorName: "Beatriz Souza",
+    title: "Saúde da minha mãe",
+    content: "Peço oração pela recuperação da minha mãe, que está internada.",
+    status: "orando",
+    isPrivate: false,
+    date: iso(addDays(today, -1)),
+    prayedBy: ["u2", "u7"],
+  },
+  {
+    id: "p2",
+    authorId: "u3",
+    authorName: "João Pereira",
+    title: "Sabedoria nas decisões",
+    content: "Estou passando por uma decisão importante de trabalho.",
+    status: "novo",
+    isPrivate: false,
+    date: iso(addDays(today, -2)),
+    prayedBy: [],
+  },
+  {
+    id: "p3",
+    authorId: "u6",
+    authorName: "Carla Ribeiro",
+    title: "Gratidão pela família",
+    content: "Deus respondeu nossa oração pela restauração familiar. Glória a Deus!",
+    status: "respondido",
+    isPrivate: false,
+    date: iso(addDays(today, -6)),
+    prayedBy: ["u2", "u4", "u8"],
+  },
+];
+
 type State = {
   currentUserId: string | null;
   users: User[];
@@ -324,6 +375,7 @@ type State = {
   notices: Notice[];
   unavailability: Unavailability[];
   notifications: AppNotification[];
+  prayers: PrayerRequest[];
   googleCalendarId?: string;
   googleApiKey?: string;
   syncGoogleCalendar?: boolean;
@@ -340,6 +392,7 @@ const initial: State = {
   notices: seedNotices,
   unavailability: seedUnav,
   notifications: [],
+  prayers: seedPrayers,
   googleCalendarId: "",
   googleApiKey: "",
   syncGoogleCalendar: false,
@@ -358,7 +411,9 @@ const load = (): State => {
       ...parsed,
       eventCategories: parsed.eventCategories ?? initial.eventCategories,
       notifications: parsed.notifications ?? [],
+      prayers: parsed.prayers ?? initial.prayers,
     };
+
 
   } catch {
     return initial;
@@ -575,4 +630,47 @@ export const auth = {
     );
     return { ok: true };
   },
+};
+
+// ---------- PEDIDOS DE ORAÇÃO ----------
+export const prayers = {
+  add: (data: { title: string; content: string; isPrivate: boolean }) => {
+    const me = state.users.find((u) => u.id === state.currentUserId);
+    const item: PrayerRequest = {
+      id: uid(),
+      authorId: me?.id ?? null,
+      authorName: me?.name ?? "Anônimo",
+      title: data.title.trim().slice(0, 120),
+      content: data.content.trim().slice(0, 1000),
+      status: "novo",
+      isPrivate: data.isPrivate,
+      date: new Date().toISOString().slice(0, 10),
+      prayedBy: [],
+    };
+    store.set((s) => ({ ...s, prayers: [item, ...s.prayers] }), { silent: true });
+  },
+  update: (id: string, patch: Partial<PrayerRequest>) =>
+    store.set(
+      (s) => ({ ...s, prayers: s.prayers.map((p) => (p.id === id ? { ...p, ...patch } : p)) }),
+      { silent: true },
+    ),
+  remove: (id: string) =>
+    store.set((s) => ({ ...s, prayers: s.prayers.filter((p) => p.id !== id) }), { silent: true }),
+  togglePray: (id: string, userId: string) =>
+    store.set(
+      (s) => ({
+        ...s,
+        prayers: s.prayers.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                prayedBy: p.prayedBy.includes(userId)
+                  ? p.prayedBy.filter((x) => x !== userId)
+                  : [...p.prayedBy, userId],
+              }
+            : p,
+        ),
+      }),
+      { silent: true },
+    ),
 };

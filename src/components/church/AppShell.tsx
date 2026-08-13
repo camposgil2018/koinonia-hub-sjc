@@ -13,6 +13,7 @@ import {
   Check,
   CalendarCheck,
   HandHeart,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore, auth, notifications as notifApi } from "@/lib/church-store";
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
-export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "prayers" | "members";
+export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "prayers" | "people" | "members";
 
 const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean }[] = [
   { id: "dashboard", label: "Início", icon: Home },
@@ -36,6 +37,7 @@ const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean
   { id: "agenda", label: "Agenda", icon: CalendarDays },
   { id: "notices", label: "Avisos", icon: Megaphone },
   { id: "prayers", label: "Oração", icon: HandHeart },
+  { id: "people", label: "Visitantes", icon: UserPlus, adminOnly: true },
   { id: "members", label: "Membros", icon: UserCog, adminOnly: true },
 ];
 

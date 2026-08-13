@@ -7,6 +7,7 @@ import { Schedules } from "@/components/church/Schedules";
 import { Agenda } from "@/components/church/Agenda";
 import { Notices } from "@/components/church/Notices";
 import { Prayers } from "@/components/church/Prayers";
+import { People } from "@/components/church/People";
 import { Members } from "@/components/church/Members";
 import { Auth } from "@/components/church/Auth";
 import { useStore } from "@/lib/church-store";
@@ -45,7 +46,7 @@ function Index() {
 
   // se membro tenta acessar aba de admin, redireciona
   useEffect(() => {
-    if (me && me.role !== "admin" && tab === "members") setTab("dashboard");
+    if (me && me.role !== "admin" && (tab === "members" || tab === "people")) setTab("dashboard");
   }, [me, tab]);
 
   if (!me) {
@@ -65,6 +66,7 @@ function Index() {
         {tab === "agenda" && <Agenda />}
         {tab === "notices" && <Notices />}
         {tab === "prayers" && <Prayers />}
+        {tab === "people" && me.role === "admin" && <People />}
         {tab === "members" && me.role === "admin" && <Members />}
       </AppShell>
       <Toaster position="top-right" richColors />

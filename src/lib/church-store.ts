@@ -61,6 +61,20 @@ export type AppNotification = {
   date: string;
   read: boolean;
 };
+export type PrayerStatus = "novo" | "orando" | "respondido";
+export type PrayerRequest = {
+  id: string;
+  authorId: string | null;
+  authorName: string;
+  title: string;
+  content: string;
+  status: PrayerStatus;
+  isPrivate: boolean;
+  date: string;
+  prayedBy: string[];
+};
+
+
 
 
 const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Recepção", "Intercessão"] as const;

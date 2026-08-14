@@ -288,6 +288,20 @@ function NewScheduleDialog() {
     setPickedUser("");
   };
 
+  const changeDate = (newDate: string) => {
+    setDate(newDate);
+    if (!newDate) return;
+    const conflicting = assignments.filter((a) => isUserUnavailable(a.userId, newDate, unav));
+    if (conflicting.length > 0) {
+      setAssignments((prev) => prev.filter((a) => !isUserUnavailable(a.userId, newDate, unav)));
+      const names = conflicting
+        .map((c) => users.find((u) => u.id === c.userId)?.name ?? "Voluntário")
+        .join(", ");
+      toast.error(`Removido(s) por indisponibilidade nesta data: ${names}`);
+    }
+    if (pickedUser && isUserUnavailable(pickedUser, newDate, unav)) setPickedUser("");
+  };
+
   const addAssignment = () => {
     if (!roleName || !pickedUser) {
       toast.error("Informe função e voluntário");

@@ -442,7 +442,13 @@ function NewScheduleDialog() {
                 </AlertDescription>
               </Alert>
             )}
-            <Button type="button" variant="secondary" onClick={addAssignment} className="gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!date}
+              onClick={addAssignment}
+              className="gap-2"
+            >
               <Plus className="h-4 w-4" />
               Incluir
             </Button>

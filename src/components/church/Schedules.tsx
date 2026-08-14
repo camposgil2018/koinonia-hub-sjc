@@ -370,7 +370,7 @@ function NewScheduleDialog() {
             </div>
             <div>
               <Label>Data</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input type="date" value={date} onChange={(e) => changeDate(e.target.value)} />
             </div>
             <div>
               <Label>Horário</Label>

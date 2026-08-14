@@ -130,8 +130,12 @@ function ScheduleCard({
     toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
   };
 
+  const [reopen, setReopen] = useState(false);
   const myAssignments = schedule.assignments.filter((a) => a.userId === highlightUserId);
   const hasMyAssignment = myAssignments.length > 0;
+  const answered =
+    hasMyAssignment && myAssignments.every((a) => a.status && a.status !== "pending");
+  const showResponse = hasMyAssignment && (!answered || reopen);
 
 
   const grouped = useMemo(() => {
@@ -218,14 +222,17 @@ function ScheduleCard({
             </div>
           ))}
         </div>
-        {hasMyAssignment && (
+        {showResponse && (
           <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-4">
             <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença nesta escala:</span>
             <Button
               size="sm"
               variant="outline"
               className="h-8 bg-success/10 hover:bg-success/20 text-success border-success/30"
-              onClick={() => setScheduleStatus(schedule.id, "confirmed")}
+              onClick={() => {
+                setScheduleStatus(schedule.id, "confirmed");
+                setReopen(false);
+              }}
             >
               Confirmar
             </Button>
@@ -233,9 +240,25 @@ function ScheduleCard({
               size="sm"
               variant="outline"
               className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
-              onClick={() => setScheduleStatus(schedule.id, "declined")}
+              onClick={() => {
+                setScheduleStatus(schedule.id, "declined");
+                setReopen(false);
+              }}
             >
               Recusar
+            </Button>
+          </div>
+        )}
+        {hasMyAssignment && answered && !reopen && (
+          <div className="flex items-center gap-2 pt-3 border-t border-border mt-4">
+            <span className="text-xs text-muted-foreground mr-auto">Sua resposta foi registrada.</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={() => setReopen(true)}
+            >
+              Alterar resposta
             </Button>
           </div>
         )}
@@ -263,6 +286,20 @@ function NewScheduleDialog() {
     setAssignments([]);
     setRoleName("");
     setPickedUser("");
+  };
+
+  const changeDate = (newDate: string) => {
+    setDate(newDate);
+    if (!newDate) return;
+    const conflicting = assignments.filter((a) => isUserUnavailable(a.userId, newDate, unav));
+    if (conflicting.length > 0) {
+      setAssignments((prev) => prev.filter((a) => !isUserUnavailable(a.userId, newDate, unav)));
+      const names = conflicting
+        .map((c) => users.find((u) => u.id === c.userId)?.name ?? "Voluntário")
+        .join(", ");
+      toast.error(`Removido(s) por indisponibilidade nesta data: ${names}`);
+    }
+    if (pickedUser && isUserUnavailable(pickedUser, newDate, unav)) setPickedUser("");
   };
 
   const addAssignment = () => {
@@ -333,7 +370,7 @@ function NewScheduleDialog() {
             </div>
             <div>
               <Label>Data</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input type="date" value={date} onChange={(e) => changeDate(e.target.value)} />
             </div>
             <div>
               <Label>Horário</Label>
@@ -358,18 +395,24 @@ function NewScheduleDialog() {
 
           <div className="rounded-lg border border-border p-4 space-y-3 bg-muted/20">
             <div className="text-sm font-medium">Adicionar voluntário</div>
+            {!date && (
+              <p className="text-xs text-muted-foreground">
+                Selecione a data da escala para liberar a inclusão de voluntários.
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label>Função</Label>
                 <Input
                   placeholder="Ex: Vocal"
                   value={roleName}
+                  disabled={!date}
                   onChange={(e) => setRoleName(e.target.value)}
                 />
               </div>
               <div className="sm:col-span-2">
                 <Label>Voluntário</Label>
-                <Select value={pickedUser} onValueChange={setPickedUser}>
+                <Select value={pickedUser} onValueChange={setPickedUser} disabled={!date}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -399,7 +442,13 @@ function NewScheduleDialog() {
                 </AlertDescription>
               </Alert>
             )}
-            <Button type="button" variant="secondary" onClick={addAssignment} className="gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!date}
+              onClick={addAssignment}
+              className="gap-2"
+            >
               <Plus className="h-4 w-4" />
               Incluir
             </Button>

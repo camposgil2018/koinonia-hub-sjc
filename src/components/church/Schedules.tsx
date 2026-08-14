@@ -222,14 +222,17 @@ function ScheduleCard({
             </div>
           ))}
         </div>
-        {hasMyAssignment && (
+        {showResponse && (
           <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-4">
             <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença nesta escala:</span>
             <Button
               size="sm"
               variant="outline"
               className="h-8 bg-success/10 hover:bg-success/20 text-success border-success/30"
-              onClick={() => setScheduleStatus(schedule.id, "confirmed")}
+              onClick={() => {
+                setScheduleStatus(schedule.id, "confirmed");
+                setReopen(false);
+              }}
             >
               Confirmar
             </Button>
@@ -237,9 +240,25 @@ function ScheduleCard({
               size="sm"
               variant="outline"
               className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
-              onClick={() => setScheduleStatus(schedule.id, "declined")}
+              onClick={() => {
+                setScheduleStatus(schedule.id, "declined");
+                setReopen(false);
+              }}
             >
               Recusar
+            </Button>
+          </div>
+        )}
+        {hasMyAssignment && answered && !reopen && (
+          <div className="flex items-center gap-2 pt-3 border-t border-border mt-4">
+            <span className="text-xs text-muted-foreground mr-auto">Sua resposta foi registrada.</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={() => setReopen(true)}
+            >
+              Alterar resposta
             </Button>
           </div>
         )}

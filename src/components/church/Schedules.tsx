@@ -130,8 +130,12 @@ function ScheduleCard({
     toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
   };
 
+  const [reopen, setReopen] = useState(false);
   const myAssignments = schedule.assignments.filter((a) => a.userId === highlightUserId);
   const hasMyAssignment = myAssignments.length > 0;
+  const answered =
+    hasMyAssignment && myAssignments.every((a) => a.status && a.status !== "pending");
+  const showResponse = hasMyAssignment && (!answered || reopen);
 
 
   const grouped = useMemo(() => {

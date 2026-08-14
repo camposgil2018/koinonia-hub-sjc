@@ -395,18 +395,24 @@ function NewScheduleDialog() {
 
           <div className="rounded-lg border border-border p-4 space-y-3 bg-muted/20">
             <div className="text-sm font-medium">Adicionar voluntário</div>
+            {!date && (
+              <p className="text-xs text-muted-foreground">
+                Selecione a data da escala para liberar a inclusão de voluntários.
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label>Função</Label>
                 <Input
                   placeholder="Ex: Vocal"
                   value={roleName}
+                  disabled={!date}
                   onChange={(e) => setRoleName(e.target.value)}
                 />
               </div>
               <div className="sm:col-span-2">
                 <Label>Voluntário</Label>
-                <Select value={pickedUser} onValueChange={setPickedUser}>
+                <Select value={pickedUser} onValueChange={setPickedUser} disabled={!date}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>

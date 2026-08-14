@@ -424,6 +424,7 @@ type State = {
   notifications: AppNotification[];
   prayers: PrayerRequest[];
   contacts: Contact[];
+  devotionals: Devotional[];
   googleCalendarId?: string;
   googleApiKey?: string;
   syncGoogleCalendar?: boolean;

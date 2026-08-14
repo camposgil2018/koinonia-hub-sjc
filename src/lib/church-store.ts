@@ -75,6 +75,16 @@ export type Contact = {
   followedUp: boolean;
   notes?: string;
 };
+export type Devotional = {
+  id: string;
+  title: string;
+  verseRef?: string;
+  verseText?: string;
+  content: string;
+  authorId: string | null;
+  authorName: string;
+  date: string;
+};
 export type PrayerStatus = "novo" | "orando" | "respondido";
 export type PrayerRequest = {
   id: string;
@@ -424,6 +434,7 @@ type State = {
   notifications: AppNotification[];
   prayers: PrayerRequest[];
   contacts: Contact[];
+  devotionals: Devotional[];
   googleCalendarId?: string;
   googleApiKey?: string;
   syncGoogleCalendar?: boolean;
@@ -442,6 +453,7 @@ const initial: State = {
   notifications: [],
   prayers: seedPrayers,
   contacts: seedContacts,
+  devotionals: [],
   googleCalendarId: "",
   googleApiKey: "",
   syncGoogleCalendar: false,
@@ -462,6 +474,7 @@ const load = (): State => {
       notifications: parsed.notifications ?? [],
       prayers: parsed.prayers ?? initial.prayers,
       contacts: parsed.contacts ?? initial.contacts,
+      devotionals: parsed.devotionals ?? initial.devotionals,
     };
 
 
@@ -738,4 +751,34 @@ export const contacts = {
     ),
   remove: (id: string) =>
     store.set((s) => ({ ...s, contacts: s.contacts.filter((c) => c.id !== id) }), { silent: true }),
+};
+
+// ---------- DEVOCIONAIS ----------
+export const devotionals = {
+  add: (data: { title: string; verseRef?: string; verseText?: string; content: string }) => {
+    const me = state.users.find((u) => u.id === state.currentUserId);
+    const item: Devotional = {
+      id: uid(),
+      title: data.title.trim().slice(0, 140),
+      verseRef: data.verseRef?.trim() || undefined,
+      verseText: data.verseText?.trim() || undefined,
+      content: data.content.trim(),
+      authorId: me?.id ?? null,
+      authorName: me?.name ?? "Liderança",
+      date: new Date().toISOString().slice(0, 10),
+    };
+    store.set((s) => ({ ...s, devotionals: [item, ...s.devotionals] }), { silent: true });
+  },
+  update: (id: string, patch: Partial<Devotional>) =>
+    store.set(
+      (s) => ({
+        ...s,
+        devotionals: s.devotionals.map((d) => (d.id === id ? { ...d, ...patch } : d)),
+      }),
+      { silent: true },
+    ),
+  remove: (id: string) =>
+    store.set((s) => ({ ...s, devotionals: s.devotionals.filter((d) => d.id !== id) }), {
+      silent: true,
+    }),
 };

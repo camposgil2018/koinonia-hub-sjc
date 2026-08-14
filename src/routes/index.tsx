@@ -6,6 +6,7 @@ import { Dashboard } from "@/components/church/Dashboard";
 import { Schedules } from "@/components/church/Schedules";
 import { Agenda } from "@/components/church/Agenda";
 import { Notices } from "@/components/church/Notices";
+import { Bible } from "@/components/church/Bible";
 import { Prayers } from "@/components/church/Prayers";
 import { People } from "@/components/church/People";
 import { Members } from "@/components/church/Members";
@@ -65,6 +66,7 @@ function Index() {
         {tab === "schedules" && <Schedules />}
         {tab === "agenda" && <Agenda />}
         {tab === "notices" && <Notices />}
+        {tab === "bible" && <Bible />}
         {tab === "prayers" && <Prayers />}
         {tab === "people" && me.role === "admin" && <People />}
         {tab === "members" && me.role === "admin" && <Members />}

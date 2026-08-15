@@ -65,7 +65,7 @@ function LoginForm() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = auth.login(email, password);
+    const res = await auth.login(email, password);
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Bem-vindo(a) de volta!");
@@ -234,17 +234,7 @@ function RegisterForm() {
     e.preventDefault();
     setLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
-    const { error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    if (error) {
-      setLoading(false);
-      toast.error(error.message.includes("registered") ? "E-mail já cadastrado" : "Não foi possível criar a conta");
-      return;
-    }
-    const res = auth.register({ name, email: normalizedEmail, password, phone, ministries });
+    const res = await auth.register({ name, email: normalizedEmail, password, phone, ministries });
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Cadastro realizado! Bem-vindo(a) à Koinonia.");

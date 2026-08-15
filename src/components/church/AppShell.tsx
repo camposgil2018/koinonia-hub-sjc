@@ -199,7 +199,7 @@ function UserCard() {
         </div>
         <button
           onClick={() => {
-            auth.logout();
+            void auth.logout();
             toast.success("Sessão encerrada");
           }}
           className="text-sidebar-foreground/60 hover:text-sidebar-foreground p-1.5 rounded-md hover:bg-sidebar-accent"
@@ -254,7 +254,7 @@ function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {
-            auth.logout();
+            void auth.logout();
             toast.success("Sessão encerrada");
           }}
         >

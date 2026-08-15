@@ -620,75 +620,82 @@ export const notifications = {
 };
 
 
-// ---------- AUTH ----------
+// ---------- AUTH (servidor: Supabase Auth + papéis no banco) ----------
 export const auth = {
-  login: (email: string, password: string): { ok: true } | { ok: false; error: string } => {
-    const e = email.trim().toLowerCase();
-    const user = state.users.find((u) => u.email.toLowerCase() === e);
-    if (!user) return { ok: false, error: "E-mail não cadastrado" };
-    if (user.password !== password) return { ok: false, error: "Senha incorreta" };
-    store.set((s) => ({ ...s, currentUserId: user.id }));
+  login: async (
+    email: string,
+    password: string,
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error || !data.user) return { ok: false, error: "E-mail ou senha inválidos" };
+    await syncDirectory(data.user.id);
     return { ok: true };
   },
-  register: (data: {
+  register: async (data: {
     name: string;
     email: string;
     password: string;
     phone?: string;
     ministries?: string[];
-  }): { ok: true } | { ok: false; error: string } => {
+  }): Promise<{ ok: true } | { ok: false; error: string }> => {
     const e = data.email.trim().toLowerCase();
     if (!data.name.trim() || !e || !data.password)
       return { ok: false, error: "Preencha todos os campos" };
     if (data.password.length < 6)
       return { ok: false, error: "A senha deve ter no mínimo 6 caracteres" };
-    if (state.users.some((u) => u.email.toLowerCase() === e))
-      return { ok: false, error: "E-mail já cadastrado" };
-    const newUser: User = {
-      id: "u-" + uid(),
-      name: data.name.trim(),
+    const { data: res, error } = await supabase.auth.signUp({
       email: e,
       password: data.password,
-      role: "member",
-      ministries: data.ministries ?? [],
-      avatarColor: pickColor(state.users.length),
-      phone: data.phone,
-    };
-    store.set((s) => ({ ...s, users: [...s.users, newUser], currentUserId: newUser.id }));
+      options: {
+        emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        data: {
+          name: data.name.trim(),
+          phone: data.phone ?? null,
+          ministries: data.ministries ?? [],
+          avatar_color: pickColor(state.users.length),
+        },
+      },
+    });
+    if (error)
+      return {
+        ok: false,
+        error: error.message.toLowerCase().includes("registered")
+          ? "E-mail já cadastrado"
+          : "Não foi possível criar a conta",
+      };
+    if (res.user) await syncDirectory(res.session ? res.user.id : state.currentUserId);
     return { ok: true };
   },
-  logout: () => store.set((s) => ({ ...s, currentUserId: null })),
-  applyRecoveredPassword: (email: string, password: string) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    store.set(
-      (s) => ({
-        ...s,
-        users: s.users.map((u) =>
-          u.email.toLowerCase() === normalizedEmail ? { ...u, password } : u,
-        ),
-      }),
-      { silent: true },
-    );
+  logout: async () => {
+    await supabase.auth.signOut();
+    store.set((s) => ({ ...s, currentUserId: null }), { silent: true });
   },
-  changePassword: (
-    userId: string,
-    current: string,
+  changePassword: async (
+    _userId: string,
+    _current: string,
     next: string,
-  ): { ok: true } | { ok: false; error: string } => {
-    const user = state.users.find((u) => u.id === userId);
-    if (!user) return { ok: false, error: "Usuário não encontrado" };
-    if (user.password !== current) return { ok: false, error: "Senha atual incorreta" };
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
     if (next.length < 6) return { ok: false, error: "A nova senha deve ter no mínimo 6 caracteres" };
-    store.set(
-      (s) => ({
-        ...s,
-        users: s.users.map((u) => (u.id === userId ? { ...u, password: next } : u)),
-      }),
-      { silent: true },
-    );
+    const { error } = await supabase.auth.updateUser({ password: next });
+    if (error) return { ok: false, error: "Não foi possível alterar a senha" };
+    return { ok: true };
+  },
+  setRole: async (
+    userId: string,
+    role: Role,
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
+    if (delErr) return { ok: false, error: "Apenas administradores podem alterar papéis" };
+    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
+    if (error) return { ok: false, error: "Apenas administradores podem alterar papéis" };
+    await syncDirectory();
     return { ok: true };
   },
 };
+
 
 // ---------- PEDIDOS DE ORAÇÃO ----------
 export const prayers = {

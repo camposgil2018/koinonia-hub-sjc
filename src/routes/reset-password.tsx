@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/sonner";
-import { auth } from "@/lib/church-store";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/reset-password")({
@@ -78,7 +77,6 @@ function ResetPasswordPage() {
     }
 
     const recoveredEmail = data.user.email ?? email;
-    if (recoveredEmail) auth.applyRecoveredPassword(recoveredEmail, password);
     await supabase.auth.signOut();
     toast.success("Senha redefinida com sucesso!");
     void navigate({ to: "/" });

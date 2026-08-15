@@ -76,7 +76,6 @@ function ResetPasswordPage() {
       return;
     }
 
-    const recoveredEmail = data.user.email ?? email;
     await supabase.auth.signOut();
     toast.success("Senha redefinida com sucesso!");
     void navigate({ to: "/" });

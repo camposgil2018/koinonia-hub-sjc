@@ -550,15 +550,68 @@ export const store = {
   },
 };
 
-// Inicializar estado a partir do Supabase (se houver)
-if (typeof window !== "undefined") {
-  fetchState().then((remote) => {
-    if (remote && remote.users && remote.users.length > 0) {
-      const localUserId = state.currentUserId;
-      store.set(() => ({ ...initial, ...remote, currentUserId: localUserId }), { silent: true });
-    }
-  }).catch((e) => console.warn('Supabase fetch error:', e));
+// ---------- SINCRONIZAÇÃO COM O SERVIDOR ----------
+// Perfis e papéis vêm do banco (com RLS). Nenhuma senha é guardada no navegador.
+export async function syncDirectory(currentUserId?: string | null) {
+  const [{ data: profiles }, { data: roles }] = await Promise.all([
+    supabase.from("profiles").select("id, name, email, phone, ministries, avatar_color"),
+    supabase.from("user_roles").select("user_id, role"),
+  ]);
+  if (!profiles) return;
+  const roleMap = new Map<string, Role>();
+  for (const r of (roles ?? []) as { user_id: string; role: Role }[]) roleMap.set(r.user_id, r.role);
+
+  store.set(
+    (s) => {
+      const byId = new Map(s.users.map((u) => [u.id, u]));
+      (profiles as any[]).forEach((p, i) => {
+        byId.set(p.id, {
+          id: p.id,
+          name: p.name || p.email,
+          email: p.email,
+          phone: p.phone ?? undefined,
+          ministries: p.ministries ?? [],
+          avatarColor: p.avatar_color || pickColor(i),
+          role: roleMap.get(p.id) ?? "member",
+        });
+      });
+      return {
+        ...s,
+        users: [...byId.values()],
+        currentUserId: currentUserId !== undefined ? currentUserId : s.currentUserId,
+      };
+    },
+    { silent: true },
+  );
 }
+
+// Inicializar sessão e estado a partir do servidor
+if (typeof window !== "undefined") {
+  supabase.auth.getSession().then(({ data }) => {
+    const uid = data.session?.user.id ?? null;
+    store.set((s) => ({ ...s, currentUserId: uid }), { silent: true });
+    if (uid) {
+      void syncDirectory(uid);
+      fetchState()
+        .then((remote) => {
+          if (!remote) return;
+          const { users: _ignored, currentUserId: _c, ...rest } = remote as any;
+          store.set((s) => ({ ...s, ...rest }), { silent: true });
+        })
+        .catch((e) => console.warn("Falha ao carregar dados do servidor", e));
+    }
+  });
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+      store.set((s) => ({ ...s, currentUserId: null }), { silent: true });
+      return;
+    }
+    const uid = session?.user.id ?? null;
+    if (uid && uid !== state.currentUserId) void syncDirectory(uid);
+  });
+}
+
 
 
 export function useStore<T>(selector: (s: State) => T): T {

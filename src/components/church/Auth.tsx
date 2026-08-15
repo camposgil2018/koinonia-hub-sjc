@@ -230,7 +230,7 @@ function RegisterForm() {
   const toggleMin = (m: string) =>
     setMinistries((p) => (p.includes(m) ? p.filter((x) => x !== m) : [...p, m]));
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const normalizedEmail = email.trim().toLowerCase();

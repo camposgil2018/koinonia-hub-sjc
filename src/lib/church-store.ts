@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from "react";
 import { fetchState, upsertState } from "./supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Role = "admin" | "moderator" | "member";
 export type User = {
   id: string;
   name: string;
   email: string;
-  password: string;
   role: Role;
   ministries: string[];
   avatarColor: string;
@@ -124,7 +124,6 @@ const seedUsers: User[] = [
     id: "u-gilmar",
     name: "Gilmar Campos",
     email: "gilmar@koinonia.com",
-    password: "admin123",
     role: "admin",
     ministries: ["Liderança"],
     avatarColor: pickColor(0),
@@ -133,7 +132,6 @@ const seedUsers: User[] = [
     id: "u2",
     name: "Mariana Costa",
     email: "mariana@koinonia.com",
-    password: "123456",
     role: "admin",
     ministries: ["Louvor", "Mídia"],
     avatarColor: pickColor(1),
@@ -142,7 +140,6 @@ const seedUsers: User[] = [
     id: "u3",
     name: "João Pereira",
     email: "joao@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Louvor"],
     avatarColor: pickColor(2),
@@ -151,7 +148,6 @@ const seedUsers: User[] = [
     id: "u4",
     name: "Beatriz Souza",
     email: "bia@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Infantil"],
     avatarColor: pickColor(3),
@@ -160,7 +156,6 @@ const seedUsers: User[] = [
     id: "u5",
     name: "Rafael Mendes",
     email: "rafael@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Mídia"],
     avatarColor: pickColor(4),
@@ -169,7 +164,6 @@ const seedUsers: User[] = [
     id: "u6",
     name: "Carla Ribeiro",
     email: "carla@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Recepção"],
     avatarColor: pickColor(5),
@@ -178,7 +172,6 @@ const seedUsers: User[] = [
     id: "u7",
     name: "Lucas Almeida",
     email: "lucas@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Louvor", "Intercessão"],
     avatarColor: pickColor(6),
@@ -187,7 +180,6 @@ const seedUsers: User[] = [
     id: "u8",
     name: "Patrícia Nunes",
     email: "patricia@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Recepção", "Infantil"],
     avatarColor: pickColor(7),
@@ -435,9 +427,6 @@ type State = {
   prayers: PrayerRequest[];
   contacts: Contact[];
   devotionals: Devotional[];
-  googleCalendarId?: string;
-  googleApiKey?: string;
-  syncGoogleCalendar?: boolean;
   eventCategories: string[];
 };
 
@@ -454,9 +443,6 @@ const initial: State = {
   prayers: seedPrayers,
   contacts: seedContacts,
   devotionals: [],
-  googleCalendarId: "",
-  googleApiKey: "",
-  syncGoogleCalendar: false,
   eventCategories: ["Culto", "Reunião", "Pequeno Grupo", "Conferência", "Ensaio"],
 };
 

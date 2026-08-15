@@ -698,13 +698,22 @@ export const auth = {
         },
       },
     });
-    if (error)
+    if (error) {
+      const m = error.message.toLowerCase();
       return {
         ok: false,
-        error: error.message.toLowerCase().includes("registered")
+        error: m.includes("registered") || m.includes("already")
           ? "E-mail já cadastrado"
-          : "Não foi possível criar a conta",
+          : m.includes("weak") || m.includes("pwned") || m.includes("leaked")
+            ? "Essa senha é muito comum e foi vazada em sites. Escolha uma senha mais forte (letras, números e símbolos)."
+            : m.includes("password")
+              ? "Senha inválida: use no mínimo 6 caracteres, com letras e números."
+              : m.includes("rate") || m.includes("limit")
+                ? "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+                : `Não foi possível criar a conta: ${error.message}`,
       };
+    }
+
     if (res.user) await syncDirectory(res.session ? res.user.id : state.currentUserId);
     return { ok: true };
   },

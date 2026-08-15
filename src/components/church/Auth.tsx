@@ -277,6 +277,10 @@ function RegisterForm() {
           required
           minLength={6}
         />
+        <p className="text-[11px] text-muted-foreground mt-1">
+          Evite senhas comuns (ex.: 123456, senha123). Use letras, números e símbolos.
+        </p>
+
       </div>
       <div>
         <Label className="mb-1.5 block">Ministérios de interesse</Label>

@@ -26,6 +26,13 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "Gestão interna da igreja: escalas, agenda de eventos, avisos e dashboard.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Hub Koinonia SJC" },
+      {
+        name: "twitter:description",
+        content: "Gestão interna da igreja: escalas, agenda de eventos, avisos e dashboard.",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

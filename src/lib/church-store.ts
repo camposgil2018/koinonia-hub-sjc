@@ -658,22 +658,17 @@ export const auth = {
     return { ok: true };
   },
   logout: () => store.set((s) => ({ ...s, currentUserId: null })),
-  requestPasswordReset: (
-    email: string,
-  ): { ok: true; tempPassword: string; userName: string } | { ok: false; error: string } => {
-    const e = email.trim().toLowerCase();
-    const user = state.users.find((u) => u.email.toLowerCase() === e);
-    if (!user) return { ok: false, error: "E-mail não cadastrado" };
-    const tempPassword =
-      Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6).toUpperCase();
+  applyRecoveredPassword: (email: string, password: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
     store.set(
       (s) => ({
         ...s,
-        users: s.users.map((u) => (u.id === user.id ? { ...u, password: tempPassword } : u)),
+        users: s.users.map((u) =>
+          u.email.toLowerCase() === normalizedEmail ? { ...u, password } : u,
+        ),
       }),
       { silent: true },
     );
-    return { ok: true, tempPassword, userName: user.name };
   },
   changePassword: (
     userId: string,

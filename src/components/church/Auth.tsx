@@ -5,27 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { auth, CATALOG } from "@/lib/church-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Mail, KeyRound, Copy, CheckCircle2 } from "lucide-react";
 import logoIgreja from "@/assets/logo-igreja.png";
-
-export const EMAIL_DOMAIN = "koinonia.com";
-
-export function toUsername(v: string) {
-  return v
-    .trim()
-    .toLowerCase()
-    .replace(/@.*$/, "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9._-]/g, "");
-}
-
-export function toEmail(v: string) {
-  return `${toUsername(v)}@${EMAIL_DOMAIN}`;
-}
-
 
 export function Auth() {
   return (
@@ -64,14 +56,15 @@ export function Auth() {
 }
 
 function LoginForm() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await auth.login(toEmail(username), password);
+    const res = auth.login(email, password);
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Bem-vindo(a) de volta!");
@@ -80,24 +73,28 @@ function LoginForm() {
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <Label htmlFor="login-user">Usuário</Label>
-        <div className="flex items-center">
-          <Input
-            id="login-user"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="gilmar"
-            autoComplete="username"
-            className="rounded-r-none"
-            required
-          />
-          <span className="h-9 flex items-center rounded-r-md border border-l-0 border-input bg-muted px-3 text-xs text-muted-foreground">
-            @{EMAIL_DOMAIN}
-          </span>
-        </div>
+        <Label htmlFor="login-email">E-mail</Label>
+        <Input
+          id="login-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="seu@email.com"
+          autoComplete="email"
+          required
+        />
       </div>
       <div>
-        <Label htmlFor="login-password">Senha</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="login-password">Senha</Label>
+          <button
+            type="button"
+            onClick={() => setForgotOpen(true)}
+            className="text-xs text-primary hover:underline font-medium"
+          >
+            Esqueci minha senha
+          </button>
+        </div>
         <Input
           id="login-password"
           type="password"
@@ -111,17 +108,149 @@ function LoginForm() {
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Entrando..." : "Entrar"}
       </Button>
-      <p className="text-[11px] text-muted-foreground text-center">
-        Esqueceu a senha? Peça para a liderança redefinir seu acesso.
-      </p>
+      <ForgotPasswordDialog
+        open={forgotOpen}
+        onOpenChange={setForgotOpen}
+        initialEmail={email}
+        onResetDone={(newPass) => setPassword(newPass)}
+      />
     </form>
   );
 }
 
+function ForgotPasswordDialog({
+  open,
+  onOpenChange,
+  initialEmail,
+  onResetDone,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initialEmail: string;
+  onResetDone: (tempPassword: string) => void;
+}) {
+  const [email, setEmail] = useState(initialEmail);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ tempPassword: string; userName: string } | null>(null);
+
+  // sincroniza email inicial ao abrir
+  if (open && email === "" && initialEmail) {
+    setEmail(initialEmail);
+  }
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const res = auth.requestPasswordReset(email);
+    setLoading(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    setResult({ tempPassword: res.tempPassword, userName: res.userName });
+    toast.success("E-mail de redefinição enviado!");
+  };
+
+  const close = () => {
+    if (result) onResetDone(result.tempPassword);
+    setResult(null);
+    setEmail("");
+    onOpenChange(false);
+  };
+
+  const copyPass = async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.tempPassword);
+      toast.success("Senha copiada!");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : close())}>
+      <DialogContent className="sm:max-w-md">
+        {!result ? (
+          <>
+            <DialogHeader>
+              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <KeyRound className="h-6 w-6 text-primary" />
+              </div>
+              <DialogTitle className="text-center">Redefinir senha</DialogTitle>
+              <DialogDescription className="text-center">
+                Informe seu e-mail cadastrado. Enviaremos uma senha temporária para você acessar.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={submit} className="space-y-4">
+              <div>
+                <Label htmlFor="forgot-email">E-mail</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  autoComplete="email"
+                  required
+                  autoFocus
+                />
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button type="button" variant="ghost" onClick={close}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  {loading ? "Enviando..." : "Enviar e-mail"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              </div>
+              <DialogTitle className="text-center">E-mail enviado!</DialogTitle>
+              <DialogDescription className="text-center">
+                Olá, <strong>{result.userName}</strong>. Enviamos uma senha temporária para{" "}
+                <strong>{email}</strong>. Use-a para entrar e altere depois em seu perfil.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Sua senha temporária
+              </Label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-md bg-background border px-3 py-2 font-mono text-base tracking-widest">
+                  {result.tempPassword}
+                </code>
+                <Button type="button" size="icon" variant="outline" onClick={copyPass}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Em produção esta senha chegaria apenas por e-mail. Como o app ainda não tem servidor
+                de e-mail configurado, ela é exibida aqui.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={close} className="w-full">
+                Usar esta senha para entrar
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function RegisterForm() {
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [ministries, setMinistries] = useState<string[]>([]);
@@ -130,21 +259,10 @@ function RegisterForm() {
   const toggleMin = (m: string) =>
     setMinistries((p) => (p.includes(m) ? p.filter((x) => x !== m) : [...p, m]));
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const user = toUsername(username || name);
-    if (!user) {
-      toast.error("Informe um nome de usuário válido.");
-      return;
-    }
     setLoading(true);
-    const res = await auth.register({
-      name,
-      email: `${user}@${EMAIL_DOMAIN}`,
-      password,
-      phone,
-      ministries,
-    });
+    const res = auth.register({ name, email, password, phone, ministries });
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Cadastro realizado! Bem-vindo(a) à Koinonia.");
@@ -158,21 +276,14 @@ function RegisterForm() {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="reg-user">Usuário</Label>
-          <div className="flex items-center">
-            <Input
-              id="reg-user"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="gilmar"
-              autoComplete="username"
-              className="rounded-r-none"
-              required
-            />
-            <span className="h-9 flex items-center rounded-r-md border border-l-0 border-input bg-muted px-2 text-[10px] text-muted-foreground">
-              @{EMAIL_DOMAIN}
-            </span>
-          </div>
+          <Label htmlFor="reg-email">E-mail</Label>
+          <Input
+            id="reg-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="reg-phone">Telefone</Label>
@@ -195,7 +306,6 @@ function RegisterForm() {
           minLength={6}
         />
       </div>
-
       <div>
         <Label className="mb-1.5 block">Ministérios de interesse</Label>
         <div className="flex flex-wrap gap-1.5">

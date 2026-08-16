@@ -1,13 +1,14 @@
-import { supabase } from "@/integrations/supabase/client";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
-export { supabase };
+// Supabase URL e chave pública (anon) — via variáveis de ambiente ou fallback
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://lhwlldxhslsoiwmkdkmm.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_fnCqmSYquvGcySmiAj_k7Q_Lkqdd_ok";
 
-const dataClient = supabase as unknown as SupabaseClient;
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Funções auxiliares para persistência do estado da aplicação
 export async function fetchState() {
-  const { data, error } = await dataClient
+  const { data, error } = await supabase
     .from("app_state")
     .select("state_json")
     .eq("id", "singleton")
@@ -20,10 +21,7 @@ export async function fetchState() {
 }
 
 export async function upsertState(state: any) {
-  // Só persiste quando há sessão ativa (RLS exige usuário autenticado)
-  const { data } = await supabase.auth.getSession();
-  if (!data.session) return;
-  const { error } = await dataClient
+  const { error } = await supabase
     .from("app_state")
     .upsert({ id: "singleton", state_json: state }, { onConflict: "id" });
   if (error) console.error("Supabase: falha ao salvar o estado", error);

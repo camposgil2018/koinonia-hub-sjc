@@ -13,7 +13,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Search, Shield, ShieldOff, Trash2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { useStore, store, auth, type User, type Role } from "@/lib/church-store";
+import { useStore, store, type User, type Role } from "@/lib/church-store";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -44,17 +44,16 @@ export function Members() {
     );
   }, [users, q]);
 
-  const changeRole = async (u: User, newRole: Role) => {
+  const changeRole = (u: User, newRole: Role) => {
+    store.set((s) => ({
+      ...s,
+      users: s.users.map((x) => (x.id === u.id ? { ...x, role: newRole } : x)),
+    }));
     const roleNames: Record<Role, string> = {
       admin: "Administrador",
       moderator: "Moderador",
       member: "Membro",
     };
-    const res = await auth.setRole(u.id, newRole);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
-    }
     toast.success(`${u.name} agora é ${roleNames[newRole]}`);
   };
 

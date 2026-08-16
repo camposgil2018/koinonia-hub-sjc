@@ -1,24 +1,31 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { auth, CATALOG } from "@/lib/church-store";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Mail, KeyRound, CheckCircle2 } from "lucide-react";
 import logoIgreja from "@/assets/logo-igreja.png";
+
+export const EMAIL_DOMAIN = "koinonia.com";
+
+export function toUsername(v: string) {
+  return v
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9._-]/g, "");
+}
+
+export function toEmail(v: string) {
+  return `${toUsername(v)}@${EMAIL_DOMAIN}`;
+}
+
 
 export function Auth() {
   return (

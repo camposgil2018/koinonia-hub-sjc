@@ -64,15 +64,14 @@ export function Auth() {
 }
 
 function LoginForm() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [forgotOpen, setForgotOpen] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await auth.login(email, password);
+    const res = await auth.login(toEmail(username), password);
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Bem-vindo(a) de volta!");
@@ -81,28 +80,24 @@ function LoginForm() {
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <Label htmlFor="login-email">E-mail</Label>
-        <Input
-          id="login-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="seu@email.com"
-          autoComplete="email"
-          required
-        />
+        <Label htmlFor="login-user">Usuário</Label>
+        <div className="flex items-center">
+          <Input
+            id="login-user"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="gilmar"
+            autoComplete="username"
+            className="rounded-r-none"
+            required
+          />
+          <span className="h-9 flex items-center rounded-r-md border border-l-0 border-input bg-muted px-3 text-xs text-muted-foreground">
+            @{EMAIL_DOMAIN}
+          </span>
+        </div>
       </div>
       <div>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="login-password">Senha</Label>
-          <button
-            type="button"
-            onClick={() => setForgotOpen(true)}
-            className="text-xs text-primary hover:underline font-medium"
-          >
-            Esqueci minha senha
-          </button>
-        </div>
+        <Label htmlFor="login-password">Senha</Label>
         <Input
           id="login-password"
           type="password"
@@ -116,14 +111,13 @@ function LoginForm() {
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Entrando..." : "Entrar"}
       </Button>
-      <ForgotPasswordDialog
-        open={forgotOpen}
-        onOpenChange={setForgotOpen}
-        initialEmail={email}
-      />
+      <p className="text-[11px] text-muted-foreground text-center">
+        Esqueceu a senha? Peça para a liderança redefinir seu acesso.
+      </p>
     </form>
   );
 }
+
 
 function RegisterForm() {
   const [name, setName] = useState("");

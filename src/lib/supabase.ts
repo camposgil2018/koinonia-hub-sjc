@@ -20,6 +20,9 @@ export async function fetchState() {
 }
 
 export async function upsertState(state: any) {
+  // Só persiste quando há sessão ativa (RLS exige usuário autenticado)
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return;
   const { error } = await dataClient
     .from("app_state")
     .upsert({ id: "singleton", state_json: state }, { onConflict: "id" });

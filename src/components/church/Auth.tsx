@@ -1,24 +1,31 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { auth, CATALOG } from "@/lib/church-store";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Mail, KeyRound, CheckCircle2 } from "lucide-react";
 import logoIgreja from "@/assets/logo-igreja.png";
+
+export const EMAIL_DOMAIN = "koinonia.com";
+
+export function toUsername(v: string) {
+  return v
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9._-]/g, "");
+}
+
+export function toEmail(v: string) {
+  return `${toUsername(v)}@${EMAIL_DOMAIN}`;
+}
+
 
 export function Auth() {
   return (
@@ -57,15 +64,14 @@ export function Auth() {
 }
 
 function LoginForm() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [forgotOpen, setForgotOpen] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await auth.login(email, password);
+    const res = await auth.login(toEmail(username), password);
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Bem-vindo(a) de volta!");
@@ -74,28 +80,24 @@ function LoginForm() {
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <Label htmlFor="login-email">E-mail</Label>
-        <Input
-          id="login-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="seu@email.com"
-          autoComplete="email"
-          required
-        />
+        <Label htmlFor="login-user">Usuário</Label>
+        <div className="flex items-center">
+          <Input
+            id="login-user"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="gilmar"
+            autoComplete="username"
+            className="rounded-r-none"
+            required
+          />
+          <span className="h-9 flex items-center rounded-r-md border border-l-0 border-input bg-muted px-3 text-xs text-muted-foreground">
+            @{EMAIL_DOMAIN}
+          </span>
+        </div>
       </div>
       <div>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="login-password">Senha</Label>
-          <button
-            type="button"
-            onClick={() => setForgotOpen(true)}
-            className="text-xs text-primary hover:underline font-medium"
-          >
-            Esqueci minha senha
-          </button>
-        </div>
+        <Label htmlFor="login-password">Senha</Label>
         <Input
           id="login-password"
           type="password"
@@ -109,119 +111,17 @@ function LoginForm() {
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Entrando..." : "Entrar"}
       </Button>
-      <ForgotPasswordDialog
-        open={forgotOpen}
-        onOpenChange={setForgotOpen}
-        initialEmail={email}
-      />
+      <p className="text-[11px] text-muted-foreground text-center">
+        Esqueceu a senha? Peça para a liderança redefinir seu acesso.
+      </p>
     </form>
   );
 }
 
-function ForgotPasswordDialog({
-  open,
-  onOpenChange,
-  initialEmail,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  initialEmail: string;
-}) {
-  const [email, setEmail] = useState(initialEmail);
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  useEffect(() => {
-    if (open) setEmail(initialEmail);
-  }, [initialEmail, open]);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setLoading(false);
-    if (error) {
-      toast.error("Não foi possível enviar o e-mail. Tente novamente.");
-      return;
-    }
-    setSent(true);
-    toast.success("E-mail de redefinição enviado!");
-  };
-
-  const close = () => {
-    setSent(false);
-    setEmail("");
-    onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : close())}>
-      <DialogContent className="sm:max-w-md">
-        {!sent ? (
-          <>
-            <DialogHeader>
-              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <KeyRound className="h-6 w-6 text-primary" />
-              </div>
-              <DialogTitle className="text-center">Redefinir senha</DialogTitle>
-              <DialogDescription className="text-center">
-                Informe seu e-mail cadastrado. Enviaremos um link seguro para você criar uma nova senha.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={submit} className="space-y-4">
-              <div>
-                <Label htmlFor="forgot-email">E-mail</Label>
-                <Input
-                  id="forgot-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  autoComplete="email"
-                  required
-                  autoFocus
-                />
-              </div>
-              <DialogFooter className="gap-2 sm:gap-2">
-                <Button type="button" variant="ghost" onClick={close}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  <Mail className="h-4 w-4 mr-2" />
-                  {loading ? "Enviando..." : "Enviar e-mail"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-              </div>
-              <DialogTitle className="text-center">E-mail enviado!</DialogTitle>
-              <DialogDescription className="text-center">
-                Se houver uma conta vinculada a <strong>{email}</strong>, você receberá um link para
-                criar uma nova senha. Verifique também a caixa de spam.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button onClick={close} className="w-full">
-                Voltar para o login
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function RegisterForm() {
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [ministries, setMinistries] = useState<string[]>([]);
@@ -232,9 +132,19 @@ function RegisterForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const user = toUsername(username || name);
+    if (!user) {
+      toast.error("Informe um nome de usuário válido.");
+      return;
+    }
     setLoading(true);
-    const normalizedEmail = email.trim().toLowerCase();
-    const res = await auth.register({ name, email: normalizedEmail, password, phone, ministries });
+    const res = await auth.register({
+      name,
+      email: `${user}@${EMAIL_DOMAIN}`,
+      password,
+      phone,
+      ministries,
+    });
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Cadastro realizado! Bem-vindo(a) à Koinonia.");
@@ -248,14 +158,21 @@ function RegisterForm() {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="reg-email">E-mail</Label>
-          <Input
-            id="reg-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <Label htmlFor="reg-user">Usuário</Label>
+          <div className="flex items-center">
+            <Input
+              id="reg-user"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="gilmar"
+              autoComplete="username"
+              className="rounded-r-none"
+              required
+            />
+            <span className="h-9 flex items-center rounded-r-md border border-l-0 border-input bg-muted px-2 text-[10px] text-muted-foreground">
+              @{EMAIL_DOMAIN}
+            </span>
+          </div>
         </div>
         <div>
           <Label htmlFor="reg-phone">Telefone</Label>
@@ -277,11 +194,8 @@ function RegisterForm() {
           required
           minLength={6}
         />
-        <p className="text-[11px] text-muted-foreground mt-1">
-          Evite senhas comuns (ex.: 123456, senha123). Use letras, números e símbolos.
-        </p>
-
       </div>
+
       <div>
         <Label className="mb-1.5 block">Ministérios de interesse</Label>
         <div className="flex flex-wrap gap-1.5">

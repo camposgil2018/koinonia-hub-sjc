@@ -121,7 +121,7 @@ function LoginForm() {
 
 function RegisterForm() {
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [ministries, setMinistries] = useState<string[]>([]);
@@ -132,9 +132,19 @@ function RegisterForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const user = toUsername(username || name);
+    if (!user) {
+      toast.error("Informe um nome de usuário válido.");
+      return;
+    }
     setLoading(true);
-    const normalizedEmail = email.trim().toLowerCase();
-    const res = await auth.register({ name, email: normalizedEmail, password, phone, ministries });
+    const res = await auth.register({
+      name,
+      email: `${user}@${EMAIL_DOMAIN}`,
+      password,
+      phone,
+      ministries,
+    });
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Cadastro realizado! Bem-vindo(a) à Koinonia.");
@@ -148,14 +158,21 @@ function RegisterForm() {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="reg-email">E-mail</Label>
-          <Input
-            id="reg-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <Label htmlFor="reg-user">Usuário</Label>
+          <div className="flex items-center">
+            <Input
+              id="reg-user"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="gilmar"
+              autoComplete="username"
+              className="rounded-r-none"
+              required
+            />
+            <span className="h-9 flex items-center rounded-r-md border border-l-0 border-input bg-muted px-2 text-[10px] text-muted-foreground">
+              @{EMAIL_DOMAIN}
+            </span>
+          </div>
         </div>
         <div>
           <Label htmlFor="reg-phone">Telefone</Label>
@@ -177,11 +194,8 @@ function RegisterForm() {
           required
           minLength={6}
         />
-        <p className="text-[11px] text-muted-foreground mt-1">
-          Evite senhas comuns (ex.: 123456, senha123). Use letras, números e símbolos.
-        </p>
-
       </div>
+
       <div>
         <Label className="mb-1.5 block">Ministérios de interesse</Label>
         <div className="flex flex-wrap gap-1.5">

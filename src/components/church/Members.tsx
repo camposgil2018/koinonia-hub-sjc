@@ -13,7 +13,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Search, Shield, ShieldOff, Trash2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { useStore, store, type User, type Role } from "@/lib/church-store";
+import { useStore, members, type User, type Role } from "@/lib/church-store";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -44,11 +44,12 @@ export function Members() {
     );
   }, [users, q]);
 
-  const changeRole = (u: User, newRole: Role) => {
-    store.set((s) => ({
-      ...s,
-      users: s.users.map((x) => (x.id === u.id ? { ...x, role: newRole } : x)),
-    }));
+  const changeRole = async (u: User, newRole: Role) => {
+    const res = await members.setRole(u.id, newRole);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
     const roleNames: Record<Role, string> = {
       admin: "Administrador",
       moderator: "Moderador",
@@ -57,21 +58,17 @@ export function Members() {
     toast.success(`${u.name} agora é ${roleNames[newRole]}`);
   };
 
-  const remove = (u: User) => {
+  const remove = async (u: User) => {
     if (u.id === meId) {
       toast.error("Você não pode remover a si mesmo");
       return;
     }
     if (!confirm(`Remover ${u.name}? Esta ação não pode ser desfeita.`)) return;
-    store.set((s) => ({
-      ...s,
-      users: s.users.filter((x) => x.id !== u.id),
-      schedules: s.schedules.map((sc) => ({
-        ...sc,
-        assignments: sc.assignments.filter((a) => a.userId !== u.id),
-      })),
-      unavailability: s.unavailability.filter((un) => un.userId !== u.id),
-    }));
+    const res = await members.remove(u.id);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
     toast.success("Membro removido");
   };
 
@@ -234,24 +231,20 @@ function EditMemberDialog({ user, onClose }: { user: User | null; onClose: () =>
     }
   }, [user]);
 
-  const save = () => {
+  const save = async () => {
     if (!user) return;
-    store.set((s) => ({
-      ...s,
-      users: s.users.map((u) =>
-        u.id === user.id
-          ? {
-              ...u,
-              name: name.trim() || u.name,
-              phone,
-              ministries: ministries
-                .split(",")
-                .map((m) => m.trim())
-                .filter(Boolean),
-            }
-          : u,
-      ),
-    }));
+    const res = await members.updateProfile(user.id, {
+      name: name.trim() || user.name,
+      phone,
+      ministries: ministries
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean),
+    });
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
     toast.success("Membro atualizado");
     onClose();
   };

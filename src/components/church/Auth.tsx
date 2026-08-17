@@ -16,7 +16,7 @@ import {
 import { auth, CATALOG } from "@/lib/church-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Mail, KeyRound, Copy, CheckCircle2 } from "lucide-react";
+import { Mail, KeyRound, CheckCircle2 } from "lucide-react";
 import logoIgreja from "@/assets/logo-igreja.png";
 
 export function Auth() {
@@ -61,10 +61,10 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = auth.login(email, password);
+    const res = await auth.login(email, password);
     setLoading(false);
     if (!res.ok) toast.error(res.error);
     else toast.success("Bem-vindo(a) de volta!");
@@ -108,12 +108,7 @@ function LoginForm() {
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Entrando..." : "Entrar"}
       </Button>
-      <ForgotPasswordDialog
-        open={forgotOpen}
-        onOpenChange={setForgotOpen}
-        initialEmail={email}
-        onResetDone={(newPass) => setPassword(newPass)}
-      />
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} initialEmail={email} />
     </form>
   );
 }
@@ -122,56 +117,41 @@ function ForgotPasswordDialog({
   open,
   onOpenChange,
   initialEmail,
-  onResetDone,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initialEmail: string;
-  onResetDone: (tempPassword: string) => void;
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ tempPassword: string; userName: string } | null>(null);
+  const [sent, setSent] = useState(false);
 
-  // sincroniza email inicial ao abrir
   if (open && email === "" && initialEmail) {
     setEmail(initialEmail);
   }
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = auth.requestPasswordReset(email);
+    const res = await auth.requestPasswordReset(email);
     setLoading(false);
     if (!res.ok) {
       toast.error(res.error);
       return;
     }
-    setResult({ tempPassword: res.tempPassword, userName: res.userName });
+    setSent(true);
     toast.success("E-mail de redefinição enviado!");
   };
 
   const close = () => {
-    if (result) onResetDone(result.tempPassword);
-    setResult(null);
-    setEmail("");
+    setSent(false);
     onOpenChange(false);
-  };
-
-  const copyPass = async () => {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.tempPassword);
-      toast.success("Senha copiada!");
-    } catch {
-      toast.error("Não foi possível copiar");
-    }
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : close())}>
       <DialogContent className="sm:max-w-md">
-        {!result ? (
+        {!sent ? (
           <>
             <DialogHeader>
               <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -179,7 +159,7 @@ function ForgotPasswordDialog({
               </div>
               <DialogTitle className="text-center">Redefinir senha</DialogTitle>
               <DialogDescription className="text-center">
-                Informe seu e-mail cadastrado. Enviaremos uma senha temporária para você acessar.
+                Informe seu e-mail cadastrado. Enviaremos um link para você criar uma nova senha.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={submit} className="space-y-4">
@@ -202,7 +182,7 @@ function ForgotPasswordDialog({
                 </Button>
                 <Button type="submit" disabled={loading}>
                   <Mail className="h-4 w-4 mr-2" />
-                  {loading ? "Enviando..." : "Enviar e-mail"}
+                  {loading ? "Enviando..." : "Enviar link"}
                 </Button>
               </DialogFooter>
             </form>
@@ -215,30 +195,13 @@ function ForgotPasswordDialog({
               </div>
               <DialogTitle className="text-center">E-mail enviado!</DialogTitle>
               <DialogDescription className="text-center">
-                Olá, <strong>{result.userName}</strong>. Enviamos uma senha temporária para{" "}
-                <strong>{email}</strong>. Use-a para entrar e altere depois em seu perfil.
+                Enviamos um link para <strong>{email}</strong>. Abra o e-mail e clique no link para
+                definir sua nova senha.
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                Sua senha temporária
-              </Label>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-md bg-background border px-3 py-2 font-mono text-base tracking-widest">
-                  {result.tempPassword}
-                </code>
-                <Button type="button" size="icon" variant="outline" onClick={copyPass}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Em produção esta senha chegaria apenas por e-mail. Como o app ainda não tem servidor
-                de e-mail configurado, ela é exibida aqui.
-              </p>
-            </div>
             <DialogFooter>
               <Button onClick={close} className="w-full">
-                Usar esta senha para entrar
+                Entendi
               </Button>
             </DialogFooter>
           </>
@@ -255,18 +218,42 @@ function RegisterForm() {
   const [password, setPassword] = useState("");
   const [ministries, setMinistries] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [confirmSent, setConfirmSent] = useState(false);
 
   const toggleMin = (m: string) =>
     setMinistries((p) => (p.includes(m) ? p.filter((x) => x !== m) : [...p, m]));
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = auth.register({ name, email, password, phone, ministries });
+    const res = await auth.register({ name, email, password, phone, ministries });
     setLoading(false);
-    if (!res.ok) toast.error(res.error);
-    else toast.success("Cadastro realizado! Bem-vindo(a) à Koinonia.");
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    if (res.needsConfirmation) {
+      setConfirmSent(true);
+      toast.success("Cadastro criado! Confirme seu e-mail para entrar.");
+    } else {
+      toast.success("Cadastro realizado! Bem-vindo(a) à Koinonia.");
+    }
   };
+
+  if (confirmSent) {
+    return (
+      <div className="space-y-3 text-center py-4">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+          <Mail className="h-6 w-6 text-emerald-600" />
+        </div>
+        <p className="text-sm font-medium">Confirme seu e-mail</p>
+        <p className="text-sm text-muted-foreground">
+          Enviamos um link de confirmação para <strong>{email}</strong>. Depois de confirmar, volte
+          aqui e faça login.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={submit} className="space-y-4">

@@ -11,7 +11,8 @@ import { Prayers } from "@/components/church/Prayers";
 import { People } from "@/components/church/People";
 import { Members } from "@/components/church/Members";
 import { Auth } from "@/components/church/Auth";
-import { useStore } from "@/lib/church-store";
+import { useStore, loadSession } from "@/lib/church-store";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,14 +42,30 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [tab, setTab] = useState<Tab>("dashboard");
+  const [ready, setReady] = useState(false);
   const currentUserId = useStore((s) => s.currentUserId);
   const users = useStore((s) => s.users);
   const me = users.find((u) => u.id === currentUserId);
+
+  // sessão real do backend
+  useEffect(() => {
+    loadSession().finally(() => setReady(true));
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        loadSession();
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   // se membro tenta acessar aba de admin, redireciona
   useEffect(() => {
     if (me && me.role !== "admin" && (tab === "members" || tab === "people")) setTab("dashboard");
   }, [me, tab]);
+
+  if (!ready) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   if (!me) {
     return (

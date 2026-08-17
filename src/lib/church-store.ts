@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from "react";
-import { fetchState, upsertState } from "./supabase";
+import { fetchState, upsertState } from "./app-state";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Role = "admin" | "moderator" | "member";
 export type User = {
   id: string;
   name: string;
   email: string;
-  password: string;
   role: Role;
   ministries: string[];
   avatarColor: string;
@@ -124,7 +124,6 @@ const seedUsers: User[] = [
     id: "u-gilmar",
     name: "Gilmar Campos",
     email: "gilmar@koinonia.com",
-    password: "admin123",
     role: "admin",
     ministries: ["Liderança"],
     avatarColor: pickColor(0),
@@ -133,7 +132,6 @@ const seedUsers: User[] = [
     id: "u2",
     name: "Mariana Costa",
     email: "mariana@koinonia.com",
-    password: "123456",
     role: "admin",
     ministries: ["Louvor", "Mídia"],
     avatarColor: pickColor(1),
@@ -142,7 +140,6 @@ const seedUsers: User[] = [
     id: "u3",
     name: "João Pereira",
     email: "joao@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Louvor"],
     avatarColor: pickColor(2),
@@ -151,7 +148,6 @@ const seedUsers: User[] = [
     id: "u4",
     name: "Beatriz Souza",
     email: "bia@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Infantil"],
     avatarColor: pickColor(3),
@@ -160,7 +156,6 @@ const seedUsers: User[] = [
     id: "u5",
     name: "Rafael Mendes",
     email: "rafael@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Mídia"],
     avatarColor: pickColor(4),
@@ -169,7 +164,6 @@ const seedUsers: User[] = [
     id: "u6",
     name: "Carla Ribeiro",
     email: "carla@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Recepção"],
     avatarColor: pickColor(5),
@@ -178,7 +172,6 @@ const seedUsers: User[] = [
     id: "u7",
     name: "Lucas Almeida",
     email: "lucas@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Louvor", "Intercessão"],
     avatarColor: pickColor(6),
@@ -187,7 +180,6 @@ const seedUsers: User[] = [
     id: "u8",
     name: "Patrícia Nunes",
     email: "patricia@koinonia.com",
-    password: "123456",
     role: "member",
     ministries: ["Recepção", "Infantil"],
     avatarColor: pickColor(7),
@@ -564,14 +556,15 @@ export const store = {
   },
 };
 
-// Inicializar estado a partir do Supabase (se houver)
+// Inicializar estado compartilhado a partir do backend (sem usuários/sessão)
 if (typeof window !== "undefined") {
-  fetchState().then((remote) => {
-    if (remote && remote.users && remote.users.length > 0) {
-      const localUserId = state.currentUserId;
-      store.set(() => ({ ...initial, ...remote, currentUserId: localUserId }), { silent: true });
-    }
-  }).catch((e) => console.warn('Supabase fetch error:', e));
+  fetchState()
+    .then((remote) => {
+      if (!remote) return;
+      const { users: _u, currentUserId: _c, ...shared } = remote as Partial<State>;
+      store.set((s) => ({ ...s, ...shared }), { silent: true });
+    })
+    .catch((e) => console.warn("Backend fetch error:", e));
 }
 
 
@@ -620,80 +613,171 @@ export const notifications = {
 };
 
 
-// ---------- AUTH ----------
+// ---------- AUTH (autenticação real no backend) ----------
+type Result = { ok: true } | { ok: false; error: string };
+
+const translate = (msg: string) => {
+  const m = msg.toLowerCase();
+  if (m.includes("invalid login")) return "E-mail ou senha incorretos";
+  if (m.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar";
+  if (m.includes("already registered") || m.includes("already been registered"))
+    return "E-mail já cadastrado";
+  if (m.includes("password should be")) return "A senha deve ter no mínimo 6 caracteres";
+  return msg;
+};
+
 export const auth = {
-  login: (email: string, password: string): { ok: true } | { ok: false; error: string } => {
-    const e = email.trim().toLowerCase();
-    const user = state.users.find((u) => u.email.toLowerCase() === e);
-    if (!user) return { ok: false, error: "E-mail não cadastrado" };
-    if (user.password !== password) return { ok: false, error: "Senha incorreta" };
-    store.set((s) => ({ ...s, currentUserId: user.id }));
+  login: async (email: string, password: string): Promise<Result> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) return { ok: false, error: translate(error.message) };
+    await loadSession();
     return { ok: true };
   },
-  register: (data: {
+  register: async (data: {
     name: string;
     email: string;
     password: string;
     phone?: string;
     ministries?: string[];
-  }): { ok: true } | { ok: false; error: string } => {
+  }): Promise<{ ok: true; needsConfirmation: boolean } | { ok: false; error: string }> => {
     const e = data.email.trim().toLowerCase();
     if (!data.name.trim() || !e || !data.password)
       return { ok: false, error: "Preencha todos os campos" };
     if (data.password.length < 6)
       return { ok: false, error: "A senha deve ter no mínimo 6 caracteres" };
-    if (state.users.some((u) => u.email.toLowerCase() === e))
-      return { ok: false, error: "E-mail já cadastrado" };
-    const newUser: User = {
-      id: "u-" + uid(),
-      name: data.name.trim(),
+    const { data: res, error } = await supabase.auth.signUp({
       email: e,
       password: data.password,
-      role: "member",
-      ministries: data.ministries ?? [],
-      avatarColor: pickColor(state.users.length),
-      phone: data.phone,
-    };
-    store.set((s) => ({ ...s, users: [...s.users, newUser], currentUserId: newUser.id }));
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          name: data.name.trim(),
+          phone: data.phone ?? "",
+          ministries: data.ministries ?? [],
+          avatar_color: pickColor(state.users.length),
+        },
+      },
+    });
+    if (error) return { ok: false, error: translate(error.message) };
+    if (res.session) await loadSession();
+    return { ok: true, needsConfirmation: !res.session };
+  },
+  logout: async () => {
+    await supabase.auth.signOut();
+    store.set((s) => ({ ...s, currentUserId: null }), { silent: true });
+  },
+  requestPasswordReset: async (email: string): Promise<Result> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) return { ok: false, error: translate(error.message) };
     return { ok: true };
   },
-  logout: () => store.set((s) => ({ ...s, currentUserId: null })),
-  requestPasswordReset: (
-    email: string,
-  ): { ok: true; tempPassword: string; userName: string } | { ok: false; error: string } => {
-    const e = email.trim().toLowerCase();
-    const user = state.users.find((u) => u.email.toLowerCase() === e);
-    if (!user) return { ok: false, error: "E-mail não cadastrado" };
-    const tempPassword =
-      Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6).toUpperCase();
-    store.set(
-      (s) => ({
-        ...s,
-        users: s.users.map((u) => (u.id === user.id ? { ...u, password: tempPassword } : u)),
-      }),
-      { silent: true },
-    );
-    return { ok: true, tempPassword, userName: user.name };
-  },
-  changePassword: (
-    userId: string,
-    current: string,
-    next: string,
-  ): { ok: true } | { ok: false; error: string } => {
-    const user = state.users.find((u) => u.id === userId);
-    if (!user) return { ok: false, error: "Usuário não encontrado" };
-    if (user.password !== current) return { ok: false, error: "Senha atual incorreta" };
-    if (next.length < 6) return { ok: false, error: "A nova senha deve ter no mínimo 6 caracteres" };
-    store.set(
-      (s) => ({
-        ...s,
-        users: s.users.map((u) => (u.id === userId ? { ...u, password: next } : u)),
-      }),
-      { silent: true },
-    );
+  changePassword: async (newPassword: string): Promise<Result> => {
+    if (newPassword.length < 6)
+      return { ok: false, error: "A nova senha deve ter no mínimo 6 caracteres" };
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { ok: false, error: translate(error.message) };
     return { ok: true };
   },
 };
+
+// ---------- MEMBROS (perfis + papéis no banco) ----------
+type ProfileRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  ministries: string[];
+  avatar_color: string;
+};
+
+export async function loadUsersFromDb() {
+  const [{ data: profiles }, { data: roles }] = await Promise.all([
+    supabase.from("profiles").select("id,name,email,phone,ministries,avatar_color"),
+    supabase.from("user_roles").select("user_id,role"),
+  ]);
+  if (!profiles) return;
+  const roleById = new Map<string, Role>();
+  for (const r of roles ?? []) {
+    const current = roleById.get(r.user_id);
+    if (current === "admin") continue;
+    roleById.set(r.user_id, r.role as Role);
+  }
+  const dbUsers: User[] = (profiles as ProfileRow[]).map((p, i) => ({
+    id: p.id,
+    name: p.name || p.email,
+    email: p.email,
+    role: roleById.get(p.id) ?? "member",
+    ministries: p.ministries ?? [],
+    avatarColor: p.avatar_color || pickColor(i),
+    phone: p.phone ?? undefined,
+  }));
+  const dbIds = new Set(dbUsers.map((u) => u.id));
+  // preserva usuários herdados (sem conta) para não quebrar escalas antigas
+  const legacy = state.users.filter((u) => !dbIds.has(u.id) && !u.id.includes("-4"));
+  store.set((s) => ({ ...s, users: [...dbUsers, ...legacy] }), { silent: true });
+}
+
+export const members = {
+  setRole: async (userId: string, role: Role): Promise<Result> => {
+    const del = await supabase.from("user_roles").delete().eq("user_id", userId);
+    if (del.error) return { ok: false, error: del.error.message };
+    const ins = await supabase.from("user_roles").insert({ user_id: userId, role });
+    if (ins.error) return { ok: false, error: ins.error.message };
+    await loadUsersFromDb();
+    return { ok: true };
+  },
+  updateProfile: async (
+    userId: string,
+    patch: { name?: string; phone?: string; ministries?: string[] },
+  ): Promise<Result> => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
+        ...(patch.ministries !== undefined ? { ministries: patch.ministries } : {}),
+      })
+      .eq("id", userId);
+    if (error) return { ok: false, error: error.message };
+    await loadUsersFromDb();
+    return { ok: true };
+  },
+  remove: async (userId: string): Promise<Result> => {
+    try {
+      const { deleteMember } = await import("./members.functions");
+      await deleteMember({ data: { userId } });
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Falha ao remover" };
+    }
+    store.set((s) => ({
+      ...s,
+      users: s.users.filter((u) => u.id !== userId),
+      schedules: s.schedules.map((sc) => ({
+        ...sc,
+        assignments: sc.assignments.filter((a) => a.userId !== userId),
+      })),
+      unavailability: s.unavailability.filter((un) => un.userId !== userId),
+    }));
+    return { ok: true };
+  },
+};
+
+// ---------- SESSÃO ----------
+export async function loadSession() {
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
+  if (!user) {
+    store.set((s) => ({ ...s, currentUserId: null }), { silent: true });
+    return;
+  }
+  await loadUsersFromDb();
+  store.set((s) => ({ ...s, currentUserId: user.id }), { silent: true });
+}
 
 // ---------- PEDIDOS DE ORAÇÃO ----------
 export const prayers = {

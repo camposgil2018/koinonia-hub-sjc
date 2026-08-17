@@ -11,7 +11,8 @@ import { Prayers } from "@/components/church/Prayers";
 import { People } from "@/components/church/People";
 import { Members } from "@/components/church/Members";
 import { Auth } from "@/components/church/Auth";
-import { useStore } from "@/lib/church-store";
+import { useStore, loadSession } from "@/lib/church-store";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({

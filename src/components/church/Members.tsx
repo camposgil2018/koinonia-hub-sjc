@@ -13,7 +13,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Search, Shield, ShieldOff, Trash2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { useStore, store, type User, type Role } from "@/lib/church-store";
+import { useStore, members, type User, type Role } from "@/lib/church-store";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,

@@ -231,24 +231,20 @@ function EditMemberDialog({ user, onClose }: { user: User | null; onClose: () =>
     }
   }, [user]);
 
-  const save = () => {
+  const save = async () => {
     if (!user) return;
-    store.set((s) => ({
-      ...s,
-      users: s.users.map((u) =>
-        u.id === user.id
-          ? {
-              ...u,
-              name: name.trim() || u.name,
-              phone,
-              ministries: ministries
-                .split(",")
-                .map((m) => m.trim())
-                .filter(Boolean),
-            }
-          : u,
-      ),
-    }));
+    const res = await members.updateProfile(user.id, {
+      name: name.trim() || user.name,
+      phone,
+      ministries: ministries
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean),
+    });
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
     toast.success("Membro atualizado");
     onClose();
   };

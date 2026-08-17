@@ -556,14 +556,15 @@ export const store = {
   },
 };
 
-// Inicializar estado a partir do Supabase (se houver)
+// Inicializar estado compartilhado a partir do backend (sem usuários/sessão)
 if (typeof window !== "undefined") {
-  fetchState().then((remote) => {
-    if (remote && remote.users && remote.users.length > 0) {
-      const localUserId = state.currentUserId;
-      store.set(() => ({ ...initial, ...remote, currentUserId: localUserId }), { silent: true });
-    }
-  }).catch((e) => console.warn('Supabase fetch error:', e));
+  fetchState()
+    .then((remote) => {
+      if (!remote) return;
+      const { users: _u, currentUserId: _c, ...shared } = remote as Partial<State>;
+      store.set((s) => ({ ...s, ...shared }), { silent: true });
+    })
+    .catch((e) => console.warn("Backend fetch error:", e));
 }
 
 

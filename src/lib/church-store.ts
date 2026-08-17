@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from "react";
-import { fetchState, upsertState } from "./supabase";
+import { fetchState, upsertState } from "./app-state";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Role = "admin" | "moderator" | "member";
 export type User = {
   id: string;
   name: string;
   email: string;
-  password: string;
   role: Role;
   ministries: string[];
   avatarColor: string;

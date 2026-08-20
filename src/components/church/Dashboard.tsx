@@ -44,6 +44,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
   const myAssignments = myNext ? myNext.assignments.filter((a) => a.userId === me.id) : [];
   const allConfirmed = myAssignments.length > 0 && myAssignments.every((a) => a.status === "confirmed");
   const anyDeclined = myAssignments.length > 0 && myAssignments.some((a) => a.status === "declined");
+  const answered = myAssignments.length > 0 && myAssignments.every((a) => a.status && a.status !== "pending");
 
   let statusLabel = "Pendente";
   let statusClass = "bg-muted text-muted-foreground hover:bg-muted border border-border";
@@ -69,6 +70,14 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
           ),
         };
       }),
+      notifications: s.notifications.filter(
+        (notification) =>
+          !(
+            notification.type === "schedule" &&
+            notification.refId === myNext.id &&
+            notification.userId === me.id
+          ),
+      ),
     }));
     toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
   };
@@ -151,25 +160,27 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
                       </div>
                     ))}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-3">
-                  <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença:</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 bg-success/10 hover:bg-success/20 text-success border-success/30"
-                    onClick={() => setMyNextStatus("confirmed")}
-                  >
-                    Confirmar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
-                    onClick={() => setMyNextStatus("declined")}
-                  >
-                    Recusar
-                  </Button>
-                </div>
+                {!answered && (
+                  <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-3">
+                    <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença:</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 bg-success/10 hover:bg-success/20 text-success border-success/30"
+                      onClick={() => setMyNextStatus("confirmed")}
+                    >
+                      Confirmar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+                      onClick={() => setMyNextStatus("declined")}
+                    >
+                      Recusar
+                    </Button>
+                  </div>
+                )}
                 <button
                   onClick={() => goTo("schedules")}
                   className="text-sm text-primary hover:underline block pt-2"

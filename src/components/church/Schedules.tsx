@@ -126,6 +126,14 @@ function ScheduleCard({
           ),
         };
       }),
+      notifications: s.notifications.filter(
+        (notification) =>
+          !(
+            notification.type === "schedule" &&
+            notification.refId === scheduleId &&
+            notification.userId === highlightUserId
+          ),
+      ),
     }));
     toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
   };

@@ -130,12 +130,11 @@ function ScheduleCard({
     toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
   };
 
-  const [reopen, setReopen] = useState(false);
   const myAssignments = schedule.assignments.filter((a) => a.userId === highlightUserId);
   const hasMyAssignment = myAssignments.length > 0;
   const answered =
     hasMyAssignment && myAssignments.every((a) => a.status && a.status !== "pending");
-  const showResponse = hasMyAssignment && (!answered || reopen);
+  const showResponse = hasMyAssignment && !answered;
 
 
   const grouped = useMemo(() => {
@@ -229,10 +228,7 @@ function ScheduleCard({
               size="sm"
               variant="outline"
               className="h-8 bg-success/10 hover:bg-success/20 text-success border-success/30"
-              onClick={() => {
-                setScheduleStatus(schedule.id, "confirmed");
-                setReopen(false);
-              }}
+              onClick={() => setScheduleStatus(schedule.id, "confirmed")}
             >
               Confirmar
             </Button>
@@ -240,25 +236,9 @@ function ScheduleCard({
               size="sm"
               variant="outline"
               className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
-              onClick={() => {
-                setScheduleStatus(schedule.id, "declined");
-                setReopen(false);
-              }}
+              onClick={() => setScheduleStatus(schedule.id, "declined")}
             >
               Recusar
-            </Button>
-          </div>
-        )}
-        {hasMyAssignment && answered && !reopen && (
-          <div className="flex items-center gap-2 pt-3 border-t border-border mt-4">
-            <span className="text-xs text-muted-foreground mr-auto">Sua resposta foi registrada.</span>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 text-xs text-muted-foreground"
-              onClick={() => setReopen(true)}
-            >
-              Alterar resposta
             </Button>
           </div>
         )}

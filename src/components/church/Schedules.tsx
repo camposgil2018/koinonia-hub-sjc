@@ -485,11 +485,13 @@ function NewScheduleDialog() {
 function UnavailabilityPanel() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
+  const canViewAll = me.role === "admin" || me.role === "moderator";
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [reason, setReason] = useState("");
 
   const mine = state.unavailability.filter((u) => u.userId === me.id);
+  const visible = canViewAll ? state.unavailability : mine;
 
   const add = () => {
     if (!start || !end) {
@@ -564,37 +566,46 @@ function UnavailabilityPanel() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Meus períodos cadastrados</CardTitle>
+          <CardTitle className="text-base">
+            {canViewAll ? "Indisponibilidades cadastradas" : "Meus períodos cadastrados"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {mine.length === 0 ? (
+          {visible.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhuma indisponibilidade registrada.</p>
           ) : (
             <ul className="space-y-2">
-              {mine.map((u) => (
+              {visible.map((u) => (
                 <li
                   key={u.id}
                   className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
                 >
                   <div>
+                    {canViewAll && (
+                      <div className="font-medium">
+                        {state.users.find((user) => user.id === u.userId)?.name ?? "Membro"}
+                      </div>
+                    )}
                     <div className="font-medium">
                       {new Date(u.start + "T12:00:00").toLocaleDateString("pt-BR")} →{" "}
                       {new Date(u.end + "T12:00:00").toLocaleDateString("pt-BR")}
                     </div>
                     {u.reason && <div className="text-xs text-muted-foreground">{u.reason}</div>}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      store.set((s) => ({
-                        ...s,
-                        unavailability: s.unavailability.filter((x) => x.id !== u.id),
-                      }))
-                    }
-                  >
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  </Button>
+                  {u.userId === me.id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        store.set((s) => ({
+                          ...s,
+                          unavailability: s.unavailability.filter((x) => x.id !== u.id),
+                        }))
+                      }
+                    >
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>

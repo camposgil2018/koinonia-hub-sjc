@@ -15,6 +15,7 @@ import { Search, Shield, ShieldOff, Trash2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useStore, members, type User, type Role } from "@/lib/church-store";
 import { cn } from "@/lib/utils";
+import { z } from "zod";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +62,10 @@ export function Members() {
   const remove = async (u: User) => {
     if (u.id === meId) {
       toast.error("Você não pode remover a si mesmo");
+      return;
+    }
+    if (!z.string().uuid().safeParse(u.id).success) {
+      toast.error("Este registro antigo não possui uma conta para remover");
       return;
     }
     if (!confirm(`Remover ${u.name}? Esta ação não pode ser desfeita.`)) return;
@@ -179,6 +184,12 @@ export function Members() {
                   variant="ghost"
                   size="icon"
                   onClick={() => remove(u)}
+                  disabled={!z.string().uuid().safeParse(u.id).success || u.id === meId}
+                  title={
+                    u.id === meId
+                      ? "Você não pode remover a si mesmo"
+                      : "Remover membro"
+                  }
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />

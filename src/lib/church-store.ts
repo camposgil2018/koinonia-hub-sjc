@@ -437,7 +437,8 @@ const KEY = "koinonia-state-v2";
 
 const initial: State = {
   currentUserId: null,
-  users: seedUsers,
+  // O projeto antigo manterá somente a conta administrativa.
+  users: [seedUsers[0]],
   schedules: seedSchedules,
   events: seedEvents,
   notices: seedNotices,
@@ -556,13 +557,20 @@ export const store = {
   },
 };
 
-// Inicializar estado compartilhado a partir do backend (sem usuários/sessão)
+// Carrega apenas os dados compartilhados. Usuários e sessão nunca vêm do
+// JSON legado, que no passado chegou a armazenar credenciais em texto aberto.
+async function hydrateSharedState() {
+  const remote = await fetchState();
+  if (!remote) return;
+  const { users: _u, currentUserId: _c, ...shared } = remote as Partial<State>;
+  store.set((s) => ({ ...s, ...shared }), { silent: true });
+}
+
 if (typeof window !== "undefined") {
-  fetchState()
-    .then((remote) => {
-      if (!remote) return;
-      const { users: _u, currentUserId: _c, ...shared } = remote as Partial<State>;
-      store.set((s) => ({ ...s, ...shared }), { silent: true });
+  supabase.auth
+    .getSession()
+    .then(({ data }) => {
+      if (data.session) return hydrateSharedState();
     })
     .catch((e) => console.warn("Backend fetch error:", e));
 }
@@ -775,8 +783,19 @@ export async function loadSession() {
     store.set((s) => ({ ...s, currentUserId: null }), { silent: true });
     return;
   }
+  await hydrateSharedState();
   await loadUsersFromDb();
-  store.set((s) => ({ ...s, currentUserId: user.id }), { silent: true });
+  store.set(
+    (s) => {
+      // Compatibilidade com o banco legado: os usuários do estado antigo usam IDs
+      // locais (por exemplo, "u-gilmar") em vez do UUID gerado pelo Supabase Auth.
+      const matchedUser = s.users.find(
+        (item) => item.email.trim().toLowerCase() === user.email?.trim().toLowerCase(),
+      );
+      return { ...s, currentUserId: matchedUser?.id ?? user.id };
+    },
+    { silent: true },
+  );
 }
 
 // ---------- PEDIDOS DE ORAÇÃO ----------

@@ -758,10 +758,28 @@ export const members = {
   remove: async (userId: string): Promise<Result> => {
     try {
       const { deleteMember } = await import("./members.functions");
-      await deleteMember({ data: { userId } });
+      try {
+        await deleteMember({ data: { userId } });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        // Sessão com token antigo/expirado: renova e tenta novamente.
+        if (/unauthorized|invalid token|jwt/i.test(msg)) {
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error || !data.session) {
+            return {
+              ok: false,
+              error: "Sua sessão expirou. Saia e entre novamente para remover membros.",
+            };
+          }
+          await deleteMember({ data: { userId } });
+        } else {
+          throw e;
+        }
+      }
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "Falha ao remover" };
     }
+
     store.set((s) => ({
       ...s,
       users: s.users.filter((u) => u.id !== userId),

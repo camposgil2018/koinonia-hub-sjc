@@ -541,11 +541,11 @@ function diffNotify(prev: State, next: State) {
 
 export const store = {
   get: () => state,
-  set: (updater: (s: State) => State, opts?: { silent?: boolean }) => {
+  set: (updater: (s: State) => State, opts?: { silent?: boolean; persist?: boolean }) => {
     const prev = state;
     state = updater(prev);
     if (!opts?.silent) diffNotify(prev, state);
-    save();
+    if (opts?.persist !== false) save();
   },
   subscribe: (l: () => void) => {
     listeners.add(l);
@@ -559,18 +559,18 @@ export const store = {
 
 // Carrega apenas os dados compartilhados. Usuários e sessão nunca vêm do
 // JSON legado, que no passado chegou a armazenar credenciais em texto aberto.
-async function hydrateSharedState() {
+export async function refreshSharedState() {
   const remote = await fetchState();
   if (!remote) return;
   const { users: _u, currentUserId: _c, ...shared } = remote as Partial<State>;
-  store.set((s) => ({ ...s, ...shared }), { silent: true });
+  store.set((s) => ({ ...s, ...shared }), { silent: true, persist: false });
 }
 
 if (typeof window !== "undefined") {
   supabase.auth
     .getSession()
     .then(({ data }) => {
-      if (data.session) return hydrateSharedState();
+      if (data.session) return refreshSharedState();
     })
     .catch((e) => console.warn("Backend fetch error:", e));
 }
@@ -783,7 +783,7 @@ export async function loadSession() {
     store.set((s) => ({ ...s, currentUserId: null }), { silent: true });
     return;
   }
-  await hydrateSharedState();
+  await refreshSharedState();
   await loadUsersFromDb();
   store.set(
     (s) => {

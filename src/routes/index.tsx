@@ -11,7 +11,7 @@ import { Prayers } from "@/components/church/Prayers";
 import { People } from "@/components/church/People";
 import { Members } from "@/components/church/Members";
 import { Auth } from "@/components/church/Auth";
-import { useStore, loadSession } from "@/lib/church-store";
+import { useStore, loadSession, refreshSharedState } from "@/lib/church-store";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
@@ -55,7 +55,13 @@ function Index() {
         loadSession();
       }
     });
-    return () => data.subscription.unsubscribe();
+    const refresh = window.setInterval(() => {
+      refreshSharedState().catch(() => {});
+    }, 10000);
+    return () => {
+      window.clearInterval(refresh);
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   // se membro tenta acessar aba de admin, redireciona

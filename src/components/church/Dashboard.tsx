@@ -91,8 +91,8 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
     .slice(0, 3);
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="stagger-in space-y-6">
+      <div className="stagger-in">
         <p className="text-sm text-muted-foreground">Olá, bem-vindo(a) de volta</p>
         <h1 className="font-display text-3xl lg:text-4xl mt-1">Paz, {me.name.split(" ")[0]}.</h1>
         {/* Botão para resetar dados locais */}
@@ -110,7 +110,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
       </div>
 
       {/* Verse of the day */}
-      <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary to-primary/85 text-primary-foreground shadow-lg">
+      <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary to-primary/85 text-primary-foreground shadow-lg transition-transform duration-500 hover:-translate-y-0.5">
         <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-gold/20 blur-2xl" />
         <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-success/15 blur-2xl" />
         <CardContent className="relative p-6 lg:p-8">
@@ -127,7 +127,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Next scale */}
-        <Card className="lg:col-span-2">
+        <Card className="group lg:col-span-2 hover:-translate-y-0.5 hover:shadow-md">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <CalendarClock className="h-4 w-4 text-primary" />
@@ -204,7 +204,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
         </Card>
 
         {/* Upcoming events */}
-        <Card>
+        <Card className="group hover:-translate-y-0.5 hover:shadow-md">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="h-4 w-4 text-gold" />
@@ -213,7 +213,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
           </CardHeader>
           <CardContent className="space-y-3">
             {upcomingEvents.map((e) => (
-              <div key={e.id} className="flex gap-3">
+              <div key={e.id} className="flex gap-3 transition-transform duration-300 group-hover:translate-x-0.5">
                 <div className="flex flex-col items-center justify-center rounded-md bg-secondary text-secondary-foreground w-12 h-12 shrink-0">
                   <div className="text-[10px] uppercase">
                     {new Date(e.date + "T12:00:00")
@@ -238,7 +238,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
       </div>
 
       {/* Recent notices */}
-      <Card>
+      <Card className="hover:shadow-md">
         <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Avisos recentes</CardTitle>
           <button onClick={() => goTo("notices")} className="text-xs text-primary hover:underline">
@@ -249,7 +249,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
           {recentNotices.map((n) => (
             <div
               key={n.id}
-              className="rounded-lg border border-border p-4 hover:border-primary/40 transition-colors"
+              className="rounded-lg border border-border p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
             >
               <div className="flex items-center gap-2 mb-2">
                 {n.pinned && <Pin className="h-3 w-3 text-gold" />}

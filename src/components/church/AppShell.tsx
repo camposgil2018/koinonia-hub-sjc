@@ -72,9 +72,9 @@ export function AppShell({
               onPick?.();
             }}
             className={cn(
-              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 ease-out hover:translate-x-0.5",
               active
-                ? "bg-sidebar-accent text-sidebar-primary"
+                ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
                 : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             )}
           >
@@ -99,7 +99,7 @@ export function AppShell({
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-72 bg-sidebar text-sidebar-foreground flex flex-col">
+          <aside className="page-enter absolute left-0 top-0 h-full w-72 bg-sidebar text-sidebar-foreground flex flex-col shadow-2xl">
             <BrandHeader />
             <div className="flex-1 py-4">
               <NavList onPick={() => setMobileOpen(false)} />
@@ -131,7 +131,7 @@ export function AppShell({
 
         </header>
 
-        <main className="flex-1 px-4 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8 max-w-6xl w-full mx-auto">
+        <main className="page-enter flex-1 px-4 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8 max-w-6xl w-full mx-auto">
           {children}
         </main>
 
@@ -145,7 +145,7 @@ export function AppShell({
                   key={item.id}
                   onClick={() => setTab(item.id)}
                   className={cn(
-                    "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
+                    "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all duration-300",
                     active ? "text-primary" : "text-muted-foreground",
                   )}
                 >

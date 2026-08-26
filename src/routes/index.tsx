@@ -8,6 +8,7 @@ import { Agenda } from "@/components/church/Agenda";
 import { Notices } from "@/components/church/Notices";
 import { Bible } from "@/components/church/Bible";
 import { Prayers } from "@/components/church/Prayers";
+import { Media } from "@/components/church/Media";
 import { People } from "@/components/church/People";
 import { Members } from "@/components/church/Members";
 import { Auth } from "@/components/church/Auth";
@@ -91,6 +92,7 @@ function Index() {
         {tab === "notices" && <Notices />}
         {tab === "bible" && <Bible />}
         {tab === "prayers" && <Prayers />}
+        {tab === "media" && <Media />}
         {tab === "people" && me.role === "admin" && <People />}
         {tab === "members" && me.role === "admin" && <Members />}
       </AppShell>

@@ -15,6 +15,7 @@ import {
   HandHeart,
   UserPlus,
   BookOpen,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore, auth, notifications as notifApi } from "@/lib/church-store";
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
-export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "bible" | "prayers" | "people" | "members";
+export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "bible" | "prayers" | "media" | "people" | "members";
 
 const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean }[] = [
   { id: "dashboard", label: "Início", icon: Home },
@@ -39,6 +40,7 @@ const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean
   { id: "notices", label: "Avisos", icon: Megaphone },
   { id: "bible", label: "Bíblia", icon: BookOpen },
   { id: "prayers", label: "Oração", icon: HandHeart },
+  { id: "media", label: "Mídia", icon: Palette },
   { id: "people", label: "Visitantes", icon: UserPlus, adminOnly: true },
   { id: "members", label: "Membros", icon: UserCog, adminOnly: true },
 ];

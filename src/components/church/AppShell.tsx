@@ -33,14 +33,14 @@ import { toast } from "sonner";
 
 export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "bible" | "prayers" | "media" | "people" | "members";
 
-const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean }[] = [
+const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean; mediaAccess?: boolean }[] = [
   { id: "dashboard", label: "Início", icon: Home },
   { id: "schedules", label: "Escalas", icon: Users },
   { id: "agenda", label: "Agenda", icon: CalendarDays },
   { id: "notices", label: "Avisos", icon: Megaphone },
   { id: "bible", label: "Bíblia", icon: BookOpen },
   { id: "prayers", label: "Oração", icon: HandHeart },
-  { id: "media", label: "Mídia", icon: Palette },
+  { id: "media", label: "Mídia", icon: Palette, mediaAccess: true },
   { id: "people", label: "Visitantes", icon: UserPlus, adminOnly: true },
   { id: "members", label: "Membros", icon: UserCog, adminOnly: true },
 ];
@@ -59,7 +59,8 @@ export function AppShell({
   const currentUserId = useStore((s) => s.currentUserId);
   const current = users.find((u) => u.id === currentUserId)!;
   const isAdmin = current.role === "admin";
-  const NAV = BASE_NAV.filter((n) => !n.adminOnly || isAdmin);
+  const hasMediaAccess = isAdmin || current.role === "moderator";
+  const NAV = BASE_NAV.filter((n) => (!n.adminOnly || isAdmin) && (!n.mediaAccess || hasMediaAccess));
 
   const NavList = ({ onPick }: { onPick?: () => void }) => (
     <nav className="flex flex-col gap-1 px-3">
@@ -196,7 +197,7 @@ function UserCard() {
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium text-sidebar-foreground truncate">{u.name}</div>
           <div className="text-[11px] text-sidebar-foreground/60">
-            {u.role === "admin" ? "Administrador" : u.role === "moderator" ? "Moderador" : "Membro"}
+            {u.role === "admin" ? "Liderança" : u.role === "moderator" ? "Equipe" : "Membro"}
           </div>
         </div>
         <button
@@ -280,7 +281,7 @@ function RoleBadge() {
           u.role === "admin" ? "bg-gold" : u.role === "moderator" ? "bg-blue-500" : "bg-success"
         )}
       />
-      {u.role === "admin" ? "Administrador" : u.role === "moderator" ? "Moderador" : "Membro"}
+      {u.role === "admin" ? "Liderança" : u.role === "moderator" ? "Equipe" : "Membro"}
     </span>
   );
 }

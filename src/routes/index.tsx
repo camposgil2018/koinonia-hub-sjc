@@ -67,7 +67,13 @@ function Index() {
 
   // se membro tenta acessar aba de admin, redireciona
   useEffect(() => {
-    if (me && me.role !== "admin" && (tab === "members" || tab === "people")) setTab("dashboard");
+    if (
+      me &&
+      ((me.role !== "admin" && (tab === "members" || tab === "people")) ||
+        (me.role !== "admin" && me.role !== "moderator" && tab === "media"))
+    ) {
+      setTab("dashboard");
+    }
   }, [me, tab]);
 
   if (!ready) {
@@ -92,7 +98,7 @@ function Index() {
         {tab === "notices" && <Notices />}
         {tab === "bible" && <Bible />}
         {tab === "prayers" && <Prayers />}
-        {tab === "media" && <Media />}
+        {tab === "media" && (me.role === "admin" || me.role === "moderator") && <Media />}
         {tab === "people" && me.role === "admin" && <People />}
         {tab === "members" && me.role === "admin" && <Members />}
       </AppShell>

@@ -103,7 +103,7 @@ export type PrayerRequest = {
 
 const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Recepção", "Intercessão"] as const;
 const NOTICE_CATEGORIES = ["Geral", "Jovens", "Casais", "Liderança"] as const;
-const EVENT_CATEGORIES = ["Culto", "Reunião", "Pequeno Grupo", "Conferência", "Ensaio"] as const;
+const EVENT_CATEGORIES = ["Culto", "Sala de Oração", "Projeto Social", "GC"] as const;
 
 export const CATALOG = { MINISTRIES, NOTICE_CATEGORIES, EVENT_CATEGORIES };
 
@@ -239,62 +239,72 @@ const seedSchedules: Schedule[] = [
   },
 ];
 
-const seedEvents: ChurchEvent[] = [
-  {
-    id: "e1",
-    date: iso(nextSunday),
-    time: "18:00",
-    title: "Culto da Família",
-    location: "Templo Principal",
-    description: "Culto semanal com louvor, palavra e ministração.",
-    category: "Culto",
-  },
-  {
-    id: "e2",
-    date: iso(addDays(today, 3)),
-    time: "20:00",
-    title: "Reunião de Oração",
-    location: "Sala 2",
-    description: "Encontro semanal de intercessão.",
-    category: "Reunião",
-  },
-  {
-    id: "e3",
-    date: iso(addDays(today, 5)),
-    time: "19:30",
-    title: "Ensaio do Louvor",
-    location: "Auditório",
-    description: "Ensaio para o culto de domingo.",
-    category: "Ensaio",
-  },
-  {
-    id: "e4",
-    date: iso(addDays(today, 10)),
-    time: "19:00",
-    title: "Pequeno Grupo - Zona Sul",
-    location: "Casa da Família Costa",
-    description: "Comunhão e estudo bíblico.",
-    category: "Pequeno Grupo",
-  },
-  {
-    id: "e5",
-    date: iso(addDays(today, 14)),
-    time: "09:00",
-    title: "Conferência de Jovens",
-    location: "Templo Principal",
-    description: "Dia inteiro com palestras e louvor.",
-    category: "Conferência",
-  },
-  {
-    id: "e6",
-    date: iso(addDays(today, 21)),
-    time: "18:00",
-    title: "Culto da Família",
-    location: "Templo Principal",
-    description: "Culto semanal.",
-    category: "Culto",
-  },
-];
+const AGENDA_VERSION = 2;
+
+const buildAgendaEvents = (): ChurchEvent[] => {
+  const events: ChurchEvent[] = [];
+  const start = new Date(Date.UTC(2026, 7, 25));
+  const end = new Date(Date.UTC(2027, 11, 31));
+  const cursor = new Date(start);
+  let dayIndex = 0;
+
+  while (cursor <= end) {
+    const date = iso(cursor);
+    const weekday = cursor.getUTCDay();
+
+    if (weekday === 2 && dayIndex % 14 === 0) {
+      events.push({
+        id: `agenda-sala-oracao-${date}`,
+        date,
+        time: "20:00",
+        title: "Sala de Oração",
+        location: "Igreja Koinonia SJC",
+        description: "Encontro de oração da igreja.",
+        category: "Sala de Oração",
+      });
+    }
+    if (weekday === 3) {
+      events.push({
+        id: `agenda-projeto-social-${date}`,
+        date,
+        time: "20:00",
+        title: "Projeto Social (Jiu Jitsu)",
+        location: "Igreja Koinonia SJC",
+        description: "Projeto social de Jiu Jitsu.",
+        category: "Projeto Social",
+      });
+    }
+    if (weekday === 4) {
+      events.push({
+        id: `agenda-gc-${date}`,
+        date,
+        time: "20:00",
+        title: "GC - Grupos de Comunhão",
+        location: "Casas",
+        description: "Grupos de comunhão nas casas.",
+        category: "GC",
+      });
+    }
+    if (weekday === 0) {
+      events.push({
+        id: `agenda-culto-celebracao-${date}`,
+        date,
+        time: "19:00",
+        title: "Culto de Celebração",
+        location: "Igreja Koinonia SJC",
+        description: "Culto semanal de celebração.",
+        category: "Culto",
+      });
+    }
+
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    dayIndex += 1;
+  }
+
+  return events;
+};
+
+const seedEvents: ChurchEvent[] = buildAgendaEvents();
 
 const seedNotices: Notice[] = [
   {
@@ -431,6 +441,7 @@ type State = {
   googleApiKey?: string;
   syncGoogleCalendar?: boolean;
   eventCategories: string[];
+  agendaVersion: number;
 };
 
 const KEY = "koinonia-state-v2";
@@ -450,7 +461,8 @@ const initial: State = {
   googleCalendarId: "",
   googleApiKey: "",
   syncGoogleCalendar: false,
-  eventCategories: ["Culto", "Reunião", "Pequeno Grupo", "Conferência", "Ensaio"],
+  eventCategories: [...EVENT_CATEGORIES],
+  agendaVersion: AGENDA_VERSION,
 };
 
 
@@ -463,6 +475,8 @@ const load = (): State => {
     return {
       ...initial,
       ...parsed,
+      events: parsed.agendaVersion === AGENDA_VERSION ? parsed.events : seedEvents,
+      agendaVersion: AGENDA_VERSION,
       eventCategories: parsed.eventCategories ?? initial.eventCategories,
       notifications: parsed.notifications ?? [],
       prayers: parsed.prayers ?? initial.prayers,
@@ -563,7 +577,17 @@ export async function refreshSharedState() {
   const remote = await fetchState();
   if (!remote) return;
   const { users: _u, currentUserId: _c, ...shared } = remote as Partial<State>;
-  store.set((s) => ({ ...s, ...shared }), { silent: true, persist: false });
+  const needsAgendaMigration = shared.agendaVersion !== AGENDA_VERSION;
+  store.set(
+    (s) => ({
+      ...s,
+      ...shared,
+      events: needsAgendaMigration ? seedEvents : shared.events ?? s.events,
+      eventCategories: needsAgendaMigration ? [...EVENT_CATEGORIES] : shared.eventCategories ?? s.eventCategories,
+      agendaVersion: AGENDA_VERSION,
+    }),
+    { silent: true, persist: needsAgendaMigration },
+  );
 }
 
 if (typeof window !== "undefined") {

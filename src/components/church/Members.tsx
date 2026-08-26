@@ -52,8 +52,8 @@ export function Members() {
       return;
     }
     const roleNames: Record<Role, string> = {
-      admin: "Administrador",
-      moderator: "Moderador",
+      admin: "Liderança",
+      moderator: "Equipe",
       member: "Membro",
     };
     toast.success(`${u.name} agora é ${roleNames[newRole]}`);
@@ -124,7 +124,7 @@ export function Members() {
                       u.role === "moderator" && "border-blue-500 text-blue-500 hover:bg-blue-500/10",
                     )}
                   >
-                    {u.role === "admin" ? "Administrador" : u.role === "moderator" ? "Moderador" : "Membro"}
+                    {u.role === "admin" ? "Liderança" : u.role === "moderator" ? "Equipe" : "Membro"}
                   </Badge>
                   {u.id === meId && (
                     <Badge variant="outline" className="text-[10px]">
@@ -170,10 +170,10 @@ export function Members() {
                       Membro
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => changeRole(u, "moderator")}>
-                      Moderador
+                      Equipe
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => changeRole(u, "admin")}>
-                      Administrador
+                      Liderança
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

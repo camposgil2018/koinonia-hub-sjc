@@ -70,13 +70,15 @@ export function Media() {
             Organize artes, banners, slides e outros materiais da igreja.
           </p>
         </div>
-        <Button onClick={() => setShowForm((open) => !open)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo pedido
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowForm((open) => !open)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo pedido
+          </Button>
+        )}
       </div>
 
-      {showForm && <MediaRequestForm me={me} onDone={() => setShowForm(false)} />}
+      {showForm && isAdmin && <MediaRequestForm me={me} onDone={() => setShowForm(false)} />}
 
       <div className="flex flex-wrap gap-2">
         <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar pedidos" className="w-64" />

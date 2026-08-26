@@ -53,13 +53,40 @@ export type Notice = {
 export type AppNotification = {
   id: string;
   userId: string;
-  type: "schedule" | "notice";
+  type: "schedule" | "notice" | "media";
   title: string;
   body: string;
-  link: "schedules" | "notices";
+  link: "schedules" | "notices" | "media";
   refId: string;
   date: string;
   read: boolean;
+};
+export type MediaRequestStatus = "pending" | "in_progress" | "completed" | "cancelled" | "rejected";
+export type MediaRequestPriority = "low" | "medium" | "high" | "urgent";
+export type MediaRequest = {
+  id: string;
+  title: string;
+  requesterId: string;
+  requesterName: string;
+  department: string;
+  type: string;
+  description: string;
+  reference?: string;
+  dueDate: string;
+  priority: MediaRequestPriority;
+  status: MediaRequestStatus;
+  rejectionReason?: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  createdAt: string;
+};
+export type MediaMessage = {
+  id: string;
+  requestId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  date: string;
 };
 export type ContactType = "congregado" | "visitante";
 export type Contact = {
@@ -434,6 +461,8 @@ type State = {
   notices: Notice[];
   unavailability: Unavailability[];
   notifications: AppNotification[];
+  mediaRequests: MediaRequest[];
+  mediaMessages: MediaMessage[];
   prayers: PrayerRequest[];
   contacts: Contact[];
   devotionals: Devotional[];
@@ -455,6 +484,8 @@ const initial: State = {
   notices: seedNotices,
   unavailability: seedUnav,
   notifications: [],
+  mediaRequests: [],
+  mediaMessages: [],
   prayers: seedPrayers,
   contacts: seedContacts,
   devotionals: [],
@@ -479,6 +510,8 @@ const load = (): State => {
       agendaVersion: AGENDA_VERSION,
       eventCategories: parsed.eventCategories ?? initial.eventCategories,
       notifications: parsed.notifications ?? [],
+      mediaRequests: parsed.mediaRequests ?? [],
+      mediaMessages: parsed.mediaMessages ?? [],
       prayers: parsed.prayers ?? initial.prayers,
       contacts: parsed.contacts ?? initial.contacts,
       devotionals: parsed.devotionals ?? initial.devotionals,

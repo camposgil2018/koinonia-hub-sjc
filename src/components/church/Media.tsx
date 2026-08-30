@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, Palette, Plus, Send, UserRound } from "lucide-react";
+import { BarChart3, MessageCircle, Palette, Plus, Send, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import {
   store,
@@ -50,14 +50,30 @@ export function Media() {
   const [filter, setFilter] = useState<"all" | MediaRequestStatus>("all");
   const [search, setSearch] = useState("");
 
+  const visibleRequests = useMemo(
+    () => state.mediaRequests.filter((request) => isAdmin || request.requesterId === me.id),
+    [state.mediaRequests, isAdmin, me.id],
+  );
+
+  const stats = useMemo(
+    () => ({
+      total: visibleRequests.length,
+      pending: visibleRequests.filter((request) => request.status === "pending").length,
+      in_progress: visibleRequests.filter((request) => request.status === "in_progress").length,
+      completed: visibleRequests.filter((request) => request.status === "completed").length,
+      cancelled: visibleRequests.filter((request) => request.status === "cancelled").length,
+      rejected: visibleRequests.filter((request) => request.status === "rejected").length,
+    }),
+    [visibleRequests],
+  );
+
   const requests = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return state.mediaRequests
-      .filter((request) => isAdmin || (me.role === "moderator" ? request.assigneeId === me.id : request.requesterId === me.id))
+    return visibleRequests
       .filter((request) => filter === "all" || request.status === filter)
       .filter((request) => !term || `${request.title} ${request.requesterName} ${request.type}`.toLowerCase().includes(term))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [state.mediaRequests, me, isAdmin, filter, search]);
+  }, [visibleRequests, filter, search]);
 
   const selected = requests.find((request) => request.id === selectedId) ?? requests[0];
 
@@ -70,7 +86,7 @@ export function Media() {
             Organize artes, banners, slides e outros materiais da igreja.
           </p>
         </div>
-        {isAdmin && (
+        {isTeam && (
           <Button onClick={() => setShowForm((open) => !open)} className="gap-2">
             <Plus className="h-4 w-4" />
             Novo pedido
@@ -78,7 +94,16 @@ export function Media() {
         )}
       </div>
 
-      {showForm && isAdmin && <MediaRequestForm me={me} onDone={() => setShowForm(false)} />}
+      {showForm && isTeam && <MediaRequestForm me={me} onDone={() => setShowForm(false)} />}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Total" value={stats.total} className="text-foreground" />
+        <StatCard label="Pendentes" value={stats.pending} className="text-secondary-foreground" />
+        <StatCard label="Em andamento" value={stats.in_progress} className="text-primary" />
+        <StatCard label="Concluídos" value={stats.completed} className="text-success" />
+        <StatCard label="Cancelados" value={stats.cancelled} className="text-muted-foreground" />
+        <StatCard label="Rejeitados" value={stats.rejected} className="text-destructive" />
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar pedidos" className="w-64" />
@@ -103,6 +128,20 @@ export function Media() {
         {selected ? <RequestDetail request={selected} me={me} isTeam={isTeam} /> : <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Selecione um pedido para ver os detalhes.</CardContent></Card>}
       </div>
     </div>
+  );
+}
+
+function StatCard({ label, value, className }: { label: string; value: number; className: string }) {
+  return (
+    <Card>
+      <CardContent className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          <p className={`mt-1 font-display text-3xl ${className}`}>{value}</p>
+        </div>
+        <BarChart3 className={`h-5 w-5 ${className}`} />
+      </CardContent>
+    </Card>
   );
 }
 

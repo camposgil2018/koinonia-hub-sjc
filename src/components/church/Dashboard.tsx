@@ -127,7 +127,8 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Next scale */}
-        <Card className="group lg:col-span-2 hover:-translate-y-0.5 hover:shadow-md">
+        {me.role !== "member" && (
+          <Card className="group lg:col-span-2 hover:-translate-y-0.5 hover:shadow-md">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <CalendarClock className="h-4 w-4 text-primary" />
@@ -203,10 +204,15 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
               </div>
             )}
           </CardContent>
-        </Card>
+          </Card>
+        )}
 
         {/* Upcoming events */}
-        <Card className="group hover:-translate-y-0.5 hover:shadow-md">
+        <Card
+          className={`group hover:-translate-y-0.5 hover:shadow-md ${
+            me.role === "member" ? "lg:col-span-3" : ""
+          }`}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="h-4 w-4 text-gold" />

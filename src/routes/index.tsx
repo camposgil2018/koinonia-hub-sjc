@@ -11,6 +11,7 @@ import { Prayers } from "@/components/church/Prayers";
 import { Media } from "@/components/church/Media";
 import { People } from "@/components/church/People";
 import { Members } from "@/components/church/Members";
+import { Settings } from "@/components/church/Settings";
 import { Auth } from "@/components/church/Auth";
 import { useStore, loadSession, refreshSharedState } from "@/lib/church-store";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,11 +66,12 @@ function Index() {
     };
   }, []);
 
-  // se membro tenta acessar aba de admin, redireciona
+  // Mantém os módulos extras exclusivos dos perfis elevados.
   useEffect(() => {
     if (
       me &&
-      ((me.role !== "admin" && (tab === "members" || tab === "people")) ||
+      ((me.role === "member" && (tab === "schedules" || tab === "media" || tab === "people" || tab === "members")) ||
+        (me.role !== "admin" && (tab === "members" || tab === "people")) ||
         (me.role !== "admin" && me.role !== "moderator" && tab === "media"))
     ) {
       setTab("dashboard");
@@ -98,6 +100,7 @@ function Index() {
         {tab === "notices" && <Notices />}
         {tab === "bible" && <Bible />}
         {tab === "prayers" && <Prayers />}
+        {tab === "settings" && <Settings />}
         {tab === "media" && (me.role === "admin" || me.role === "moderator") && <Media />}
         {tab === "people" && me.role === "admin" && <People />}
         {tab === "members" && me.role === "admin" && <Members />}

@@ -16,6 +16,7 @@ import {
   UserPlus,
   BookOpen,
   Palette,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore, auth, notifications as notifApi } from "@/lib/church-store";
@@ -31,15 +32,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
-export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "bible" | "prayers" | "media" | "people" | "members";
+export type Tab = "dashboard" | "schedules" | "agenda" | "notices" | "bible" | "prayers" | "settings" | "media" | "people" | "members";
 
-const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean; mediaAccess?: boolean }[] = [
+const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean; mediaAccess?: boolean; elevatedOnly?: boolean }[] = [
   { id: "dashboard", label: "Início", icon: Home },
-  { id: "schedules", label: "Escalas", icon: Users },
+  { id: "schedules", label: "Escalas", icon: Users, elevatedOnly: true },
   { id: "agenda", label: "Agenda", icon: CalendarDays },
   { id: "notices", label: "Avisos", icon: Megaphone },
   { id: "bible", label: "Bíblia", icon: BookOpen },
   { id: "prayers", label: "Oração", icon: HandHeart },
+  { id: "settings", label: "Ajustes", icon: Settings },
   { id: "media", label: "Mídia", icon: Palette, mediaAccess: true },
   { id: "people", label: "Visitantes", icon: UserPlus, adminOnly: true },
   { id: "members", label: "Membros", icon: UserCog, adminOnly: true },
@@ -60,7 +62,13 @@ export function AppShell({
   const current = users.find((u) => u.id === currentUserId)!;
   const isAdmin = current.role === "admin";
   const hasMediaAccess = isAdmin || current.role === "moderator";
-  const NAV = BASE_NAV.filter((n) => (!n.adminOnly || isAdmin) && (!n.mediaAccess || hasMediaAccess));
+  const isElevated = isAdmin || current.role === "moderator";
+  const NAV = BASE_NAV.filter(
+    (n) =>
+      (!n.adminOnly || isAdmin) &&
+      (!n.mediaAccess || hasMediaAccess) &&
+      (!n.elevatedOnly || isElevated),
+  );
 
   const NavList = ({ onPick }: { onPick?: () => void }) => (
     <nav className="flex flex-col gap-1 px-3">

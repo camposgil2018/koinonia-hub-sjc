@@ -456,6 +456,7 @@ const seedContacts: Contact[] = [
 type State = {
   currentUserId: string | null;
   users: User[];
+  removedUserIds: string[];
   schedules: Schedule[];
   events: ChurchEvent[];
   notices: Notice[];
@@ -479,6 +480,7 @@ const initial: State = {
   currentUserId: null,
   // O projeto antigo manterá somente a conta administrativa.
   users: [seedUsers[0]],
+  removedUserIds: [],
   schedules: seedSchedules,
   events: seedEvents,
   notices: seedNotices,
@@ -515,6 +517,7 @@ const load = (): State => {
       prayers: parsed.prayers ?? initial.prayers,
       contacts: parsed.contacts ?? initial.contacts,
       devotionals: parsed.devotionals ?? initial.devotionals,
+      removedUserIds: parsed.removedUserIds ?? [],
     };
 
 
@@ -772,18 +775,23 @@ export async function loadUsersFromDb() {
     if (current === "admin") continue;
     roleById.set(r.user_id, r.role as Role);
   }
-  const dbUsers: User[] = (profiles as ProfileRow[]).map((p, i) => ({
-    id: p.id,
-    name: p.name || p.email,
-    email: p.email,
-    role: roleById.get(p.id) ?? "member",
-    ministries: p.ministries ?? [],
-    avatarColor: p.avatar_color || pickColor(i),
-    phone: p.phone ?? undefined,
-  }));
+  const removedUserIds = new Set(state.removedUserIds ?? []);
+  const dbUsers: User[] = (profiles as ProfileRow[])
+    .filter((profile) => !removedUserIds.has(profile.id))
+    .map((p, i) => ({
+      id: p.id,
+      name: p.name || p.email,
+      email: p.email,
+      role: roleById.get(p.id) ?? "member",
+      ministries: p.ministries ?? [],
+      avatarColor: p.avatar_color || pickColor(i),
+      phone: p.phone ?? undefined,
+    }));
   const dbIds = new Set(dbUsers.map((u) => u.id));
   // preserva usuários herdados (sem conta) para não quebrar escalas antigas
-  const legacy = state.users.filter((u) => !dbIds.has(u.id) && !u.id.includes("-4"));
+  const legacy = state.users.filter(
+    (u) => !dbIds.has(u.id) && !u.id.includes("-4") && !removedUserIds.has(u.id),
+  );
   store.set((s) => ({ ...s, users: [...dbUsers, ...legacy] }), { silent: true });
 }
 
@@ -821,15 +829,15 @@ export const members = {
 
       // Compatibilidade enquanto a migration ainda não foi aplicada no Supabase:
       // revoga primeiro o papel para impedir novo acesso e remove o perfil da igreja.
-      const roleResult = await supabase.from("user_roles").delete().eq("user_id", userId);
-      if (roleResult.error) return { ok: false, error: roleResult.error.message };
-
-      const profileResult = await supabase.from("profiles").delete().eq("id", userId);
-      if (profileResult.error) return { ok: false, error: profileResult.error.message };
+      await Promise.all([
+        supabase.from("user_roles").delete().eq("user_id", userId),
+        supabase.from("profiles").delete().eq("id", userId),
+      ]);
     }
     store.set((s) => ({
       ...s,
       users: s.users.filter((u) => u.id !== userId),
+      removedUserIds: [...new Set([...(s.removedUserIds ?? []), userId])],
       schedules: s.schedules.map((sc) => ({
         ...sc,
         assignments: sc.assignments.filter((a) => a.userId !== userId),

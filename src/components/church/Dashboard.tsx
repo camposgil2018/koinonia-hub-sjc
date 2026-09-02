@@ -34,7 +34,8 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
   const me = state.users.find((u) => u.id === state.currentUserId)!;
   const verse = VERSES[new Date().getDate() % VERSES.length];
 
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const upcoming = state.schedules
     .filter((s) => s.date >= today && s.assignments.some((a) => a.userId === me.id))
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -86,7 +87,8 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 3);
 
-  const recentNotices = [...state.notices]
+  const recentNotices = state.notices
+    .filter((notice) => notice.date >= today)
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date))
     .slice(0, 3);
 

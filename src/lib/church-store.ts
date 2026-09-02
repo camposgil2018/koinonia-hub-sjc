@@ -814,7 +814,19 @@ export const members = {
   },
   remove: async (userId: string): Promise<Result> => {
     const { error } = await supabase.rpc("delete_member", { target_user_id: userId });
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      const functionUnavailable =
+        error.code === "PGRST202" || error.message.includes("schema cache");
+      if (!functionUnavailable) return { ok: false, error: error.message };
+
+      // Compatibilidade enquanto a migration ainda não foi aplicada no Supabase:
+      // revoga primeiro o papel para impedir novo acesso e remove o perfil da igreja.
+      const roleResult = await supabase.from("user_roles").delete().eq("user_id", userId);
+      if (roleResult.error) return { ok: false, error: roleResult.error.message };
+
+      const profileResult = await supabase.from("profiles").delete().eq("id", userId);
+      if (profileResult.error) return { ok: false, error: profileResult.error.message };
+    }
     store.set((s) => ({
       ...s,
       users: s.users.filter((u) => u.id !== userId),

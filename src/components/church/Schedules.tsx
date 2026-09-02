@@ -259,7 +259,173 @@ function ScheduleCard({
   );
 }
 
+function AddMinistryDialog({ schedule }: { schedule: import("@/lib/church-store").Schedule }) {
+  const state = useStore((s) => s);
+  const users = state.users;
+  const unav = state.unavailability;
+  const me = users.find((u) => u.id === state.currentUserId)!;
+  const options =
+    me.role === "admin" || me.ministries.length === 0 ? CATALOG.MINISTRIES : me.ministries;
+
+  const [open, setOpen] = useState(false);
+  const [ministry, setMinistry] = useState<string>(options[0] ?? CATALOG.MINISTRIES[0]);
+  const [roleName, setRoleName] = useState("");
+  const [pickedUser, setPickedUser] = useState("");
+  const [rows, setRows] = useState<ScheduleAssignment[]>([]);
+
+  const reset = () => {
+    setRoleName("");
+    setPickedUser("");
+    setRows([]);
+  };
+
+  const add = () => {
+    if (!roleName || !pickedUser) {
+      toast.error("Informe função e voluntário");
+      return;
+    }
+    if (isUserUnavailable(pickedUser, schedule.date, unav)) {
+      toast.error("Este voluntário está indisponível nesta data e não pode ser escalado");
+      return;
+    }
+    if (
+      schedule.assignments.some((a) => a.userId === pickedUser && a.ministry === ministry) ||
+      rows.some((a) => a.userId === pickedUser && a.ministry === ministry)
+    ) {
+      toast.error("Este voluntário já está nesta escala neste ministério");
+      return;
+    }
+    setRows((p) => [...p, { ministry, role: roleName, userId: pickedUser, status: "pending" }]);
+    setRoleName("");
+    setPickedUser("");
+  };
+
+  const save = () => {
+    if (rows.length === 0) {
+      toast.error("Adicione ao menos uma escalação");
+      return;
+    }
+    store.set((s) => ({
+      ...s,
+      schedules: s.schedules.map((sch) =>
+        sch.id === schedule.id ? { ...sch, assignments: [...sch.assignments, ...rows] } : sch
+      ),
+    }));
+    toast.success("Ministério incluído nesta escala");
+    reset();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) reset();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 gap-1.5">
+          <UserPlus className="h-3.5 w-3.5" />
+          Incluir meu ministério
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Incluir escalação — {schedule.title}</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-2">
+          {formatDate(schedule.date)} • {schedule.time}. Os voluntários entram nesta mesma escala,
+          para que todos tenham a visão completa do dia.
+        </p>
+        <div className="grid gap-3">
+          <div>
+            <Label>Ministério</Label>
+            <Select value={ministry} onValueChange={setMinistry}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label>Função</Label>
+              <Input
+                placeholder="Ex: Vocal"
+                value={roleName}
+                onChange={(e) => setRoleName(e.target.value)}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Voluntário</Label>
+              <Select value={pickedUser} onValueChange={setPickedUser}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => {
+                    const blocked = isUserUnavailable(u.id, schedule.date, unav);
+                    return (
+                      <SelectItem key={u.id} value={u.id} disabled={blocked}>
+                        <span className="flex items-center gap-2">
+                          {u.name}
+                          {blocked && (
+                            <span className="text-[10px] text-destructive">• indisponível</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button type="button" variant="secondary" onClick={add} className="gap-2 w-fit">
+            <Plus className="h-4 w-4" />
+            Incluir
+          </Button>
+
+          {rows.length > 0 && (
+            <div className="rounded-lg border divide-y">
+              {rows.map((a, i) => (
+                <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">{a.ministry}</span> ·{" "}
+                    <span className="font-medium">{a.role}</span> —{" "}
+                    {users.find((x) => x.id === a.userId)?.name}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setRows((p) => p.filter((_, j) => j !== i))}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={save}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function NewScheduleDialog() {
+
   const [open, setOpen] = useState(false);
   const users = useStore((s) => s.users);
   const unav = useStore((s) => s.unavailability);

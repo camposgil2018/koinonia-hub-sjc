@@ -813,12 +813,8 @@ export const members = {
     return { ok: true };
   },
   remove: async (userId: string): Promise<Result> => {
-    try {
-      const { deleteMember } = await import("./members.functions");
-      await deleteMember({ data: { userId } });
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : "Falha ao remover" };
-    }
+    const { error } = await supabase.rpc("delete_member", { target_user_id: userId });
+    if (error) return { ok: false, error: error.message };
     store.set((s) => ({
       ...s,
       users: s.users.filter((u) => u.id !== userId),

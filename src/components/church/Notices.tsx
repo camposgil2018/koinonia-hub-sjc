@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Pin, PinOff, Plus, Trash2, Pencil } from "lucide-react";
+import { Archive, Pin, PinOff, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useStore, store, uid, CATALOG, type Notice } from "@/lib/church-store";
 import { cn } from "@/lib/utils";
@@ -36,8 +36,14 @@ export function Notices() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
   const isAdmin = me.role === "admin" || me.role === "moderator";
+  const [view, setView] = useState<"active" | "archived">("active");
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-  const sorted = [...state.notices].sort(
+  const active = state.notices.filter((notice) => notice.date >= today);
+  const archived = state.notices.filter((notice) => notice.date < today);
+  const visible = view === "archived" && isAdmin ? archived : active;
+  const sorted = [...visible].sort(
     (a, b) => Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date),
   );
 
@@ -53,7 +59,26 @@ export function Notices() {
         {isAdmin && <NoticeDialog mode="create" />}
       </div>
 
+      {isAdmin && (
+        <div className="flex flex-wrap gap-2">
+          <Button variant={view === "active" ? "default" : "outline"} onClick={() => setView("active")}>
+            Avisos ativos <Badge variant="secondary" className="ml-2">{active.length}</Badge>
+          </Button>
+          <Button variant={view === "archived" ? "default" : "outline"} onClick={() => setView("archived")}>
+            <Archive className="mr-2 h-4 w-4" /> Arquivados
+            <Badge variant="secondary" className="ml-2">{archived.length}</Badge>
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
+        {sorted.length === 0 && (
+          <Card className="md:col-span-2">
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">
+              {view === "archived" ? "Nenhum aviso arquivado." : "Nenhum aviso ativo no momento."}
+            </CardContent>
+          </Card>
+        )}
         {sorted.map((n) => (
           <NoticeCard key={n.id} notice={n} canEdit={isAdmin} />
         ))}
@@ -143,13 +168,18 @@ function NoticeDialog({
 }) {
   const me = useStore((s) => s.users.find((u) => u.id === s.currentUserId)!);
   const [open, setOpen] = useState(false);
+  const defaultExpirationDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
   const [form, setForm] = useState<Omit<Notice, "id">>(
     () =>
       notice ?? {
         title: "",
         category: "Geral",
         content: "",
-        date: new Date().toISOString().slice(0, 10),
+        date: defaultExpirationDate(),
         author: me.name,
         pinned: false,
       },
@@ -215,7 +245,7 @@ function NoticeDialog({
               </Select>
             </div>
             <div>
-              <Label>Data</Label>
+              <Label>Exibir até</Label>
               <Input
                 type="date"
                 value={form.date}

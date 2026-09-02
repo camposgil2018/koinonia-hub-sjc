@@ -15,8 +15,9 @@ export const deleteMember = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Apenas administradores podem remover membros");
     if (data.userId === context.userId) throw new Error("Você não pode remover a si mesmo");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    const { error } = await context.supabase.rpc("delete_member", {
+      target_user_id: data.userId,
+    });
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });

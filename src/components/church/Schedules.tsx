@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Plus, Trash2, CalendarOff, Users } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, CalendarOff, Users, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import {
   useStore,

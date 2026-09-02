@@ -128,7 +128,7 @@ export type PrayerRequest = {
 
 
 
-const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Recepção", "Intercessão"] as const;
+const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Staff", "Intercessão"] as const;
 const NOTICE_CATEGORIES = ["Geral", "Jovens", "Casais", "Liderança"] as const;
 const EVENT_CATEGORIES = ["Culto", "Sala de Oração", "Projeto Social", "GC"] as const;
 
@@ -192,7 +192,7 @@ const seedUsers: User[] = [
     name: "Carla Ribeiro",
     email: "carla@koinonia.com",
     role: "member",
-    ministries: ["Recepção"],
+    ministries: ["Staff"],
     avatarColor: pickColor(5),
   },
   {
@@ -208,7 +208,7 @@ const seedUsers: User[] = [
     name: "Patrícia Nunes",
     email: "patricia@koinonia.com",
     role: "member",
-    ministries: ["Recepção", "Infantil"],
+    ministries: ["Staff", "Infantil"],
     avatarColor: pickColor(7),
   },
 ];
@@ -239,7 +239,7 @@ const seedSchedules: Schedule[] = [
       { ministry: "Louvor", role: "Backing", userId: "u7" },
       { ministry: "Mídia", role: "Projeção", userId: "u5" },
       { ministry: "Infantil", role: "Professor", userId: "u4" },
-      { ministry: "Recepção", role: "Boas-vindas", userId: "u6" },
+      { ministry: "Staff", role: "Boas-vindas", userId: "u6" },
     ],
   },
   {
@@ -251,7 +251,7 @@ const seedSchedules: Schedule[] = [
       { ministry: "Louvor", role: "Vocal Principal", userId: "u7" },
       { ministry: "Louvor", role: "Violão", userId: "u3" },
       { ministry: "Mídia", role: "Som", userId: "u5" },
-      { ministry: "Recepção", role: "Boas-vindas", userId: "u8" },
+      { ministry: "Staff", role: "Boas-vindas", userId: "u8" },
     ],
   },
   {

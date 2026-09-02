@@ -169,16 +169,20 @@ function ScheduleCard({
           <CardTitle className="text-xl font-display mt-1">{schedule.title}</CardTitle>
         </div>
         {canEdit && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={remove}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <AddMinistryDialog schedule={schedule} />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={remove}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </CardHeader>
+
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2">
           {grouped.map(([ministry, list]) => (

@@ -193,14 +193,13 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
               <div className="text-sm text-muted-foreground py-4">
                 Você não possui escalas futuras no momento.
                 <br />
-                {me.role !== "member" && (
-                  <button
-                    onClick={() => goTo("schedules")}
-                    className="text-primary hover:underline mt-2 inline-block"
-                  >
-                    Cadastrar indisponibilidade →
-                  </button>
-                )}
+                <button
+                  onClick={() => goTo("schedules")}
+                  className="text-primary hover:underline mt-2 inline-block"
+                >
+                  Cadastrar indisponibilidade →
+                </button>
+
               </div>
             )}
           </CardContent>

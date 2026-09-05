@@ -47,6 +47,8 @@ const BASE_NAV: { id: Tab; label: string; icon: typeof Home; adminOnly?: boolean
   { id: "members", label: "Membros", icon: UserCog, adminOnly: true },
 ];
 
+const MOBILE_NAV_IDS: Tab[] = ["dashboard", "agenda", "notices", "bible"];
+
 export function AppShell({
   tab,
   setTab,
@@ -69,6 +71,7 @@ export function AppShell({
       (!n.mediaAccess || hasMediaAccess) &&
       (!n.elevatedOnly || isElevated),
   );
+  const mobileNav = NAV.filter((item) => MOBILE_NAV_IDS.includes(item.id));
 
   const NavList = ({ onPick }: { onPick?: () => void }) => (
     <nav className="flex flex-col gap-1 px-3">
@@ -142,21 +145,22 @@ export function AppShell({
 
         </header>
 
-        <main className="page-enter flex-1 px-4 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8 max-w-6xl w-full mx-auto">
+        <main className="page-enter flex-1 w-full max-w-6xl mx-auto px-4 py-6 pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-8 lg:pb-8">
           {children}
         </main>
 
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur">
-          <div className="grid" style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))` }}>
-            {NAV.map((item) => {
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Navega\u00e7\u00e3o principal">
+          <div className="grid grid-cols-4">
+            {mobileNav.map((item) => {
               const Icon = item.icon;
               const active = tab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setTab(item.id)}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all duration-300",
+                    "flex min-h-16 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-all duration-300",
                     active ? "text-primary" : "text-muted-foreground",
                   )}
                 >

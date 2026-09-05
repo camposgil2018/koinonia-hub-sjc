@@ -338,7 +338,7 @@ function PersonalNotes({
     setSaving(true);
     try {
       const saved = editingNote
-        ? await bibleNotes.update(editingNote.id, trimmedContent)
+        ? await bibleNotes.update(userId, editingNote.id, trimmedContent)
         : await bibleNotes.create({
             userId,
             content: trimmedContent,
@@ -359,9 +359,10 @@ function PersonalNotes({
   };
 
   const removeNote = async (id: string) => {
+    if (!userId) return;
     setDeletingId(id);
     try {
-      await bibleNotes.remove(id);
+      await bibleNotes.remove(userId, id);
       setNotes((currentNotes) => currentNotes.filter((note) => note.id !== id));
       toast.success("Anotação removida.");
     } catch (error) {

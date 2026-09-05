@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Loader2, Plus, Trash2, Pencil, Search } from "lucide-react";
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -70,6 +73,8 @@ function BibleReader() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [bookPickerOpen, setBookPickerOpen] = useState(false);
+  const [chapterPickerOpen, setChapterPickerOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -109,58 +114,107 @@ function BibleReader() {
     ? verses.filter((v) => stripTags(v.text).toLowerCase().includes(query.trim().toLowerCase()))
     : verses;
 
+  const selectBook = (nextBookId: number) => {
+    setBookId(nextBookId);
+    setChapter(1);
+    setBookPickerOpen(false);
+  };
+
+  const previousChapter = () => setChapter((currentChapter) => Math.max(1, currentChapter - 1));
+  const nextChapter = () =>
+    setChapter((currentChapter) => Math.min(book?.chapters ?? 1, currentChapter + 1));
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-[1fr_120px_1fr]">
-        <div className="space-y-1.5">
-          <Label>Livro</Label>
-          <Select
-            value={String(bookId)}
-            onValueChange={(v) => {
-              setBookId(Number(v));
-              setChapter(1);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Livro" />
-            </SelectTrigger>
-            <SelectContent className="max-h-72">
-              {books.map((b) => (
-                <SelectItem key={b.bookid} value={String(b.bookid)}>
-                  {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <section className="space-y-3 rounded-lg border border-border bg-card p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 space-y-1.5">
+            <Label>Passagem</Label>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
+              <Button
+                variant="outline"
+                className="justify-between gap-3 overflow-hidden"
+                onClick={() => setBookPickerOpen(true)}
+              >
+                <span className="flex min-w-0 items-center gap-2 truncate">
+                  <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">{book?.name ?? "Carregando livros..."}</span>
+                </span>
+                <span className="text-xs text-muted-foreground">Livro</span>
+              </Button>
+              <Button variant="outline" onClick={() => setChapterPickerOpen(true)}>
+                Cap. {chapter}
+              </Button>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={previousChapter}
+              disabled={chapter <= 1}
+              aria-label="Capítulo anterior"
+              title="Capítulo anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={nextChapter}
+              disabled={chapter >= (book?.chapters ?? 1)}
+              aria-label="Próximo capítulo"
+              title="Próximo capítulo"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+
         <div className="space-y-1.5">
-          <Label>Capítulo</Label>
-          <Select value={String(chapter)} onValueChange={(v) => setChapter(Number(v))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="max-h-72">
-              {chapters.map((c) => (
-                <SelectItem key={c} value={String(c)}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Buscar no capítulo</Label>
+          <Label htmlFor="verse-search">Buscar neste capítulo</Label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-9"
+              id="verse-search"
+              className="pl-9 pr-10"
               placeholder="Palavra ou frase"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Limpar busca"
+                title="Limpar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
-      </div>
+      </section>
+
+      <BookPicker
+        books={books}
+        open={bookPickerOpen}
+        selectedBookId={bookId}
+        onOpenChange={setBookPickerOpen}
+        onSelect={selectBook}
+      />
+      <ChapterPicker
+        bookName={book?.name}
+        chapters={chapters}
+        currentChapter={chapter}
+        open={chapterPickerOpen}
+        onOpenChange={setChapterPickerOpen}
+        onSelect={(nextChapter) => {
+          setChapter(nextChapter);
+          setChapterPickerOpen(false);
+        }}
+      />
 
       <div className="rounded-xl border border-border bg-card p-5 lg:p-7">
         <div className="flex items-center gap-2 mb-4">
@@ -194,6 +248,134 @@ function BibleReader() {
         )}
       </div>
     </div>
+  );
+}
+
+function BookPicker({
+  books,
+  open,
+  selectedBookId,
+  onOpenChange,
+  onSelect,
+}: {
+  books: Book[];
+  open: boolean;
+  selectedBookId: number;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (bookId: number) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+  const filteredBooks = books.filter((book) =>
+    book.name.toLocaleLowerCase("pt-BR").includes(normalizedQuery),
+  );
+  const oldTestament = filteredBooks.filter((book) => book.bookid <= 39);
+  const newTestament = filteredBooks.filter((book) => book.bookid > 39);
+
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden p-0">
+        <DialogHeader className="px-5 pt-5">
+          <DialogTitle>Escolha um livro</DialogTitle>
+        </DialogHeader>
+        <div className="px-5 pb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              className="pl-9"
+              placeholder="Pesquisar livro"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto px-5 pb-5">
+          {!filteredBooks.length ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Nenhum livro encontrado.</p>
+          ) : (
+            <div className="space-y-5">
+              <BookGroup title="Antigo Testamento" books={oldTestament} selectedBookId={selectedBookId} onSelect={onSelect} />
+              <BookGroup title="Novo Testamento" books={newTestament} selectedBookId={selectedBookId} onSelect={onSelect} />
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BookGroup({
+  title,
+  books,
+  selectedBookId,
+  onSelect,
+}: {
+  title: string;
+  books: Book[];
+  selectedBookId: number;
+  onSelect: (bookId: number) => void;
+}) {
+  if (!books.length) return null;
+
+  return (
+    <section>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {books.map((book) => (
+          <Button
+            key={book.bookid}
+            variant={book.bookid === selectedBookId ? "default" : "outline"}
+            className="h-auto min-h-10 justify-start whitespace-normal py-2 text-left"
+            onClick={() => onSelect(book.bookid)}
+          >
+            {book.name}
+          </Button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ChapterPicker({
+  bookName,
+  chapters,
+  currentChapter,
+  open,
+  onOpenChange,
+  onSelect,
+}: {
+  bookName?: string;
+  chapters: number[];
+  currentChapter: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (chapter: number) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Capítulos de {bookName ?? "Bíblia"}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
+          {chapters.map((chapter) => (
+            <Button
+              key={chapter}
+              variant={chapter === currentChapter ? "default" : "outline"}
+              className="px-0"
+              onClick={() => onSelect(chapter)}
+            >
+              {chapter}
+            </Button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  NotebookPen,
   Pencil,
   Plus,
   Search,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useStore, devotionals as devApi, type Devotional } from "@/lib/church-store";
+import { bibleNotes, type BibleNote } from "@/lib/bible-notes";
 
 type Book = { bookid: number; name: string; chapters: number };
 type Verse = { verse: number; text: string };
@@ -55,7 +57,7 @@ export function Bible() {
           <TabsTrigger value="devocionais">Devocionais</TabsTrigger>
         </TabsList>
         <TabsContent value="biblia" className="mt-4">
-          <BibleReader />
+          <BibleReader userId={currentUserId} />
         </TabsContent>
         <TabsContent value="devocionais" className="mt-4">
           <Devotionals canManage={!!canManage} />
@@ -65,7 +67,7 @@ export function Bible() {
   );
 }
 
-function BibleReader() {
+function BibleReader({ userId }: { userId: string | null }) {
   const [books, setBooks] = useState<Book[]>([]);
   const [bookId, setBookId] = useState<number>(43); // João
   const [chapter, setChapter] = useState<number>(3);
@@ -247,7 +249,230 @@ function BibleReader() {
           </div>
         )}
       </div>
+      <PersonalNotes
+        userId={userId}
+        bookId={bookId}
+        bookName={book?.name ?? "Bíblia"}
+        chapter={chapter}
+      />
     </div>
+  );
+}
+
+function PersonalNotes({
+  userId,
+  bookId,
+  bookName,
+  chapter,
+}: {
+  userId: string | null;
+  bookId: number;
+  bookName: string;
+  chapter: number;
+}) {
+  const [notes, setNotes] = useState<BibleNote[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<BibleNote | null>(null);
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) {
+      setNotes([]);
+      return;
+    }
+
+    let alive = true;
+    setLoading(true);
+    setLoadError(false);
+    void bibleNotes
+      .list(userId, bookId, chapter)
+      .then((items) => {
+        if (alive) setNotes(items);
+      })
+      .catch(() => {
+        if (alive) setLoadError(true);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [userId, bookId, chapter]);
+
+  const openNewNote = () => {
+    setEditingNote(null);
+    setContent("");
+    setEditorOpen(true);
+  };
+
+  const openEditNote = (note: BibleNote) => {
+    setEditingNote(note);
+    setContent(note.content);
+    setEditorOpen(true);
+  };
+
+  const handleEditorChange = (open: boolean) => {
+    setEditorOpen(open);
+    if (!open) {
+      setEditingNote(null);
+      setContent("");
+    }
+  };
+
+  const saveNote = async () => {
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      toast.error("Escreva uma anotação antes de salvar.");
+      return;
+    }
+    if (!userId) return;
+
+    setSaving(true);
+    try {
+      const saved = editingNote
+        ? await bibleNotes.update(editingNote.id, trimmedContent)
+        : await bibleNotes.create({
+            userId,
+            bookId,
+            bookName,
+            chapter,
+            content: trimmedContent,
+          });
+
+      setNotes((currentNotes) =>
+        editingNote
+          ? currentNotes.map((note) => (note.id === saved.id ? saved : note))
+          : [saved, ...currentNotes],
+      );
+      toast.success(editingNote ? "Anotação atualizada." : "Anotação salva.");
+      handleEditorChange(false);
+    } catch {
+      toast.error("Não foi possível salvar a anotação.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeNote = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await bibleNotes.remove(id);
+      setNotes((currentNotes) => currentNotes.filter((note) => note.id !== id));
+      toast.success("Anotação removida.");
+    } catch {
+      toast.error("Não foi possível remover a anotação.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const reference = `${bookName} ${chapter}`;
+
+  return (
+    <section className="space-y-4 rounded-xl border border-border bg-card p-5 lg:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="font-display text-xl">Minhas anotações</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Privadas para você em {reference}.
+          </p>
+        </div>
+        <Button size="sm" onClick={openNewNote}>
+          <NotebookPen className="h-4 w-4" /> Nova anotação
+        </Button>
+      </div>
+
+      {loading && (
+        <div className="flex items-center gap-2 py-5 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando anotações...
+        </div>
+      )}
+      {loadError && !loading && (
+        <p className="py-4 text-sm text-destructive">Não foi possível carregar suas anotações.</p>
+      )}
+      {!loading && !loadError && !notes.length && (
+        <p className="py-4 text-sm text-muted-foreground">
+          Registre aqui o que chamou sua atenção nesta passagem.
+        </p>
+      )}
+      {!loading && !loadError && notes.length > 0 && (
+        <div className="space-y-3">
+          {notes.map((note) => (
+            <article key={note.id} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
+              <div className="flex items-start gap-3">
+                <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-relaxed">{note.content}</p>
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEditNote(note)}
+                    aria-label="Editar anotação"
+                    title="Editar anotação"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => void removeNote(note.id)}
+                    disabled={deletingId === note.id}
+                    aria-label="Excluir anotação"
+                    title="Excluir anotação"
+                  >
+                    {deletingId === note.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Atualizada em {new Date(note.updated_at).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={editorOpen} onOpenChange={handleEditorChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingNote ? "Editar anotação" : "Nova anotação"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="bible-note">{reference}</Label>
+            <Textarea
+              id="bible-note"
+              rows={8}
+              maxLength={10000}
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              placeholder="Escreva sua reflexão sobre esta passagem..."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleEditorChange(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void saveNote()} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              Salvar anotação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }
 

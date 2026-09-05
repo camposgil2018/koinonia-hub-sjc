@@ -45,10 +45,10 @@ export function Schedules() {
   const isAdmin = me.role === "admin" || me.role === "moderator";
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl">Escalas de Ministérios</h1>
+    <div className="space-y-5 sm:space-y-6">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl sm:text-3xl">Escalas de Ministérios</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Organize e visualize as escalas dos cultos e eventos.
           </p>
@@ -57,7 +57,7 @@ export function Schedules() {
       </div>
 
       <Tabs defaultValue={isAdmin ? "all" : "mine"}>
-        <TabsList>
+        <TabsList className="flex h-auto w-full justify-start overflow-x-auto sm:w-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {isAdmin && <TabsTrigger value="all">Todas as escalas</TabsTrigger>}
           <TabsTrigger value="mine">Minhas escalas</TabsTrigger>
           <TabsTrigger value="unav">
@@ -67,7 +67,7 @@ export function Schedules() {
         </TabsList>
 
         {isAdmin && (
-          <TabsContent value="all" className="mt-5 space-y-5">
+          <TabsContent value="all" className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
             {[...state.schedules]
               .sort((a, b) => a.date.localeCompare(b.date))
               .map((s) => (
@@ -76,7 +76,7 @@ export function Schedules() {
           </TabsContent>
         )}
 
-        <TabsContent value="mine" className="mt-5 space-y-5">
+        <TabsContent value="mine" className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
           {state.schedules
             .filter((s) => s.assignments.some((a) => a.userId === me.id))
             .sort((a, b) => a.date.localeCompare(b.date))
@@ -160,16 +160,16 @@ function ScheduleCard({
   };
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-3 flex-row items-start justify-between space-y-0 gap-3">
-        <div>
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+    <Card className="overflow-hidden rounded-lg">
+      <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 space-y-0 border-b border-border/70 px-4 py-4 sm:flex sm:flex-row sm:justify-between sm:border-b-0 sm:px-6 sm:pb-3 sm:pt-6">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground sm:text-xs">
             {formatDate(schedule.date)} • {schedule.time}
           </div>
-          <CardTitle className="text-xl font-display mt-1">{schedule.title}</CardTitle>
+          <CardTitle className="mt-1 text-lg font-display leading-tight sm:text-xl">{schedule.title}</CardTitle>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             <AddMinistryDialog schedule={schedule} />
             <Button
               variant="ghost"
@@ -183,15 +183,15 @@ function ScheduleCard({
         )}
       </CardHeader>
 
-      <CardContent>
-        <div className="grid gap-4 md:grid-cols-2">
+      <CardContent className="px-3 py-3 sm:px-6 sm:pb-6 sm:pt-0">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
           {grouped.map(([ministry, list]) => (
-            <div key={ministry} className="rounded-lg border border-border bg-muted/20 p-4">
-              <div className="flex items-center gap-2 mb-3">
+            <div key={ministry} className="rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
+              <div className="mb-2 flex items-center gap-2 border-b border-border/60 pb-2 sm:mb-3">
                 <Users className="h-3.5 w-3.5 text-primary" />
                 <div className="text-sm font-semibold">{ministry}</div>
               </div>
-              <ul className="space-y-2">
+              <ul className="divide-y divide-border/60">
                 {list.map((a, i) => {
                   const u = users.find((x) => x.id === a.userId);
                   const unavailable = u && isUserUnavailable(u.id, schedule.date, unav);
@@ -199,11 +199,13 @@ function ScheduleCard({
                     return (
                       <li
                         key={i}
-                        className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm ${me ? "bg-gold/15 ring-1 ring-gold/40" : ""}`}
+                        className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-2.5 text-sm sm:flex sm:py-1.5 ${me ? "bg-gold/15 ring-1 ring-gold/40" : ""}`}
                       >
-                        <span className="text-muted-foreground text-xs w-28 shrink-0">{a.role}</span>
-                        <span className="flex-1 truncate font-medium">{u?.name ?? "—"}</span>
-                        <div className="flex items-center gap-1.5">
+                        <div className="min-w-0 sm:contents">
+                          <span className="block text-[11px] text-muted-foreground sm:w-28 sm:shrink-0 sm:text-xs">{a.role}</span>
+                          <span className="block break-words font-medium leading-snug sm:flex-1 sm:truncate">{u?.name ?? "—"}</span>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-1.5">
                           {a.status === "confirmed" && (
                             <Badge className="bg-success/15 hover:bg-success/25 text-success border-success/30 px-1.5 py-0.5 text-[10px] font-normal">
                               ✔ Confirmado
@@ -234,12 +236,12 @@ function ScheduleCard({
           ))}
         </div>
         {showResponse && (
-          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-4">
-            <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença nesta escala:</span>
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-3 sm:flex sm:flex-wrap sm:items-center">
+            <span className="col-span-2 text-xs text-muted-foreground sm:mr-auto">Confirmar sua presença nesta escala:</span>
             <Button
               size="sm"
               variant="outline"
-              className="h-8 bg-success/10 hover:bg-success/20 text-success border-success/30"
+              className="h-9 bg-success/10 hover:bg-success/20 text-success border-success/30 sm:h-8"
               onClick={() => setScheduleStatus(schedule.id, "confirmed")}
             >
               Confirmar
@@ -247,7 +249,7 @@ function ScheduleCard({
             <Button
               size="sm"
               variant="outline"
-              className="h-8 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+              className="h-9 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30 sm:h-8"
               onClick={() => setScheduleStatus(schedule.id, "declined")}
             >
               Recusar

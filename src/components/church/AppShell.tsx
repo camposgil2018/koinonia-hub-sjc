@@ -142,12 +142,12 @@ export function AppShell({
 
         </header>
 
-        <main className="page-enter flex-1 px-4 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8 max-w-6xl w-full mx-auto">
+        <main className="page-enter flex-1 px-3 pt-5 pb-40 sm:px-4 sm:py-6 sm:pb-24 lg:px-8 lg:py-8 max-w-6xl w-full mx-auto">
           {children}
         </main>
 
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur">
-          <div className="grid" style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))` }}>
+          <div className="grid grid-cols-5 sm:flex sm:justify-around">
             {NAV.map((item) => {
               const Icon = item.icon;
               const active = tab === item.id;
@@ -156,12 +156,12 @@ export function AppShell({
                   key={item.id}
                   onClick={() => setTab(item.id)}
                   className={cn(
-                    "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all duration-300",
+                    "min-w-0 flex flex-col items-center gap-0.5 py-2 text-[9px] font-medium transition-all duration-300 sm:flex-1 sm:gap-1 sm:py-2.5 sm:text-[11px]",
                     active ? "text-primary" : "text-muted-foreground",
                   )}
                 >
-                  <Icon className="h-5 w-5" />
-                  {item.label}
+                  <Icon className="h-4.5 w-4.5 shrink-0 sm:h-5 sm:w-5" />
+                  <span className="max-w-full truncate px-0.5">{item.label}</span>
                 </button>
               );
             })}

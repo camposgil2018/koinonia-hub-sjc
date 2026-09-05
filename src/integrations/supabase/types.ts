@@ -34,9 +34,6 @@ export type Database = {
       }
       bible_notes: {
         Row: {
-          book_id: number
-          book_name: string
-          chapter: number
           content: string
           created_at: string
           id: string
@@ -44,9 +41,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          book_id: number
-          book_name: string
-          chapter: number
           content: string
           created_at?: string
           id?: string
@@ -54,9 +48,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          book_id?: number
-          book_name?: string
-          chapter?: number
           content?: string
           created_at?: string
           id?: string

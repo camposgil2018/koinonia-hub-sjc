@@ -5,20 +5,15 @@ export type BibleNote = Database["public"]["Tables"]["bible_notes"]["Row"];
 
 type NewBibleNote = {
   userId: string;
-  bookId: number;
-  bookName: string;
-  chapter: number;
   content: string;
 };
 
 export const bibleNotes = {
-  async list(userId: string, bookId: number, chapter: number) {
+  async list(userId: string) {
     const { data, error } = await supabase
       .from("bible_notes")
       .select("*")
       .eq("user_id", userId)
-      .eq("book_id", bookId)
-      .eq("chapter", chapter)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;
@@ -30,9 +25,6 @@ export const bibleNotes = {
       .from("bible_notes")
       .insert({
         user_id: note.userId,
-        book_id: note.bookId,
-        book_name: note.bookName,
-        chapter: note.chapter,
         content: note.content,
       })
       .select()

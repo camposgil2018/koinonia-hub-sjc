@@ -1,16 +1,13 @@
 create table if not exists public.bible_notes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  book_id integer not null check (book_id between 1 and 66),
-  book_name text not null,
-  chapter integer not null check (chapter > 0),
   content text not null check (char_length(trim(content)) between 1 and 10000),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create index if not exists bible_notes_user_passage_idx
-  on public.bible_notes (user_id, book_id, chapter, updated_at desc);
+create index if not exists bible_notes_user_updated_idx
+  on public.bible_notes (user_id, updated_at desc);
 
 alter table public.bible_notes enable row level security;
 

@@ -36,6 +36,16 @@ const TRANSLATION = "NVIPT";
 
 const stripTags = (s: string) => s.replace(/<[^>]*>/g, "").trim();
 
+const noteErrorMessage = (error: unknown, action: "load" | "save" | "remove") => {
+  if (typeof error === "object" && error !== null && "code" in error && error.code === "42P01") {
+    return "As anotações ainda precisam ser ativadas no banco de dados.";
+  }
+
+  if (action === "load") return "Não foi possível carregar suas anotações.";
+  if (action === "remove") return "Não foi possível remover a anotação.";
+  return "Não foi possível salvar a anotação.";
+};
+
 export function Bible() {
   const users = useStore((s) => s.users);
   const currentUserId = useStore((s) => s.currentUserId);
@@ -52,22 +62,26 @@ export function Bible() {
       </div>
 
       <Tabs defaultValue="biblia">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3 sm:w-auto">
           <TabsTrigger value="biblia">Bíblia NVI</TabsTrigger>
           <TabsTrigger value="devocionais">Devocionais</TabsTrigger>
+          <TabsTrigger value="anotacoes">Anotações</TabsTrigger>
         </TabsList>
         <TabsContent value="biblia" className="mt-4">
-          <BibleReader userId={currentUserId} />
+          <BibleReader />
         </TabsContent>
         <TabsContent value="devocionais" className="mt-4">
           <Devotionals canManage={!!canManage} />
+        </TabsContent>
+        <TabsContent value="anotacoes" className="mt-4">
+          <PersonalNotes userId={currentUserId} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function BibleReader({ userId }: { userId: string | null }) {
+function BibleReader() {
   const [books, setBooks] = useState<Book[]>([]);
   const [bookId, setBookId] = useState<number>(43); // João
   const [chapter, setChapter] = useState<number>(3);
@@ -249,30 +263,18 @@ function BibleReader({ userId }: { userId: string | null }) {
           </div>
         )}
       </div>
-      <PersonalNotes
-        userId={userId}
-        bookId={bookId}
-        bookName={book?.name ?? "Bíblia"}
-        chapter={chapter}
-      />
     </div>
   );
 }
 
 function PersonalNotes({
   userId,
-  bookId,
-  bookName,
-  chapter,
 }: {
   userId: string | null;
-  bookId: number;
-  bookName: string;
-  chapter: number;
 }) {
   const [notes, setNotes] = useState<BibleNote[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<BibleNote | null>(null);
   const [content, setContent] = useState("");
@@ -287,14 +289,14 @@ function PersonalNotes({
 
     let alive = true;
     setLoading(true);
-    setLoadError(false);
+    setLoadError(null);
     void bibleNotes
-      .list(userId, bookId, chapter)
+      .list(userId)
       .then((items) => {
         if (alive) setNotes(items);
       })
-      .catch(() => {
-        if (alive) setLoadError(true);
+      .catch((error) => {
+        if (alive) setLoadError(noteErrorMessage(error, "load"));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -303,7 +305,7 @@ function PersonalNotes({
     return () => {
       alive = false;
     };
-  }, [userId, bookId, chapter]);
+  }, [userId]);
 
   const openNewNote = () => {
     setEditingNote(null);
@@ -339,9 +341,6 @@ function PersonalNotes({
         ? await bibleNotes.update(editingNote.id, trimmedContent)
         : await bibleNotes.create({
             userId,
-            bookId,
-            bookName,
-            chapter,
             content: trimmedContent,
           });
 
@@ -352,8 +351,8 @@ function PersonalNotes({
       );
       toast.success(editingNote ? "Anotação atualizada." : "Anotação salva.");
       handleEditorChange(false);
-    } catch {
-      toast.error("Não foi possível salvar a anotação.");
+    } catch (error) {
+      toast.error(noteErrorMessage(error, "save"));
     } finally {
       setSaving(false);
     }
@@ -365,14 +364,12 @@ function PersonalNotes({
       await bibleNotes.remove(id);
       setNotes((currentNotes) => currentNotes.filter((note) => note.id !== id));
       toast.success("Anotação removida.");
-    } catch {
-      toast.error("Não foi possível remover a anotação.");
+    } catch (error) {
+      toast.error(noteErrorMessage(error, "remove"));
     } finally {
       setDeletingId(null);
     }
   };
-
-  const reference = `${bookName} ${chapter}`;
 
   return (
     <section className="space-y-4 rounded-xl border border-border bg-card p-5 lg:p-6">
@@ -380,7 +377,7 @@ function PersonalNotes({
         <div>
           <h2 className="font-display text-xl">Minhas anotações</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Privadas para você em {reference}.
+            Um espaço pessoal e privado para suas reflexões.
           </p>
         </div>
         <Button size="sm" onClick={openNewNote}>
@@ -394,11 +391,11 @@ function PersonalNotes({
         </div>
       )}
       {loadError && !loading && (
-        <p className="py-4 text-sm text-destructive">Não foi possível carregar suas anotações.</p>
+        <p className="py-4 text-sm text-destructive">{loadError}</p>
       )}
       {!loading && !loadError && !notes.length && (
         <p className="py-4 text-sm text-muted-foreground">
-          Registre aqui o que chamou sua atenção nesta passagem.
+          Registre aqui suas reflexões, orações e aprendizados.
         </p>
       )}
       {!loading && !loadError && notes.length > 0 && (
@@ -451,7 +448,7 @@ function PersonalNotes({
             <DialogTitle>{editingNote ? "Editar anotação" : "Nova anotação"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="bible-note">{reference}</Label>
+            <Label htmlFor="bible-note">Sua anotação</Label>
             <Textarea
               id="bible-note"
               rows={8}

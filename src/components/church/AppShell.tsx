@@ -17,11 +17,19 @@ import {
   BookOpen,
   Palette,
   Settings,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore, auth, notifications as notifApi } from "@/lib/church-store";
 
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +67,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const users = useStore((s) => s.users);
   const currentUserId = useStore((s) => s.currentUserId);
   const current = users.find((u) => u.id === currentUserId)!;
@@ -72,6 +81,23 @@ export function AppShell({
       (!n.elevatedOnly || isElevated),
   );
   const mobileNav = NAV.filter((item) => MOBILE_NAV_IDS.includes(item.id));
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("theme");
+    const shouldUseDarkMode =
+      savedTheme === "dark" ||
+      (savedTheme === null && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    document.documentElement.classList.toggle("dark", shouldUseDarkMode);
+    setDarkMode(shouldUseDarkMode);
+  }, []);
+
+  const toggleDarkMode = () => {
+    const nextDarkMode = !darkMode;
+    document.documentElement.classList.toggle("dark", nextDarkMode);
+    window.localStorage.setItem("theme", nextDarkMode ? "dark" : "light");
+    setDarkMode(nextDarkMode);
+  };
 
   const NavList = ({ onPick }: { onPick?: () => void }) => (
     <nav className="flex flex-col gap-1 px-3">
@@ -139,6 +165,7 @@ export function AppShell({
           </div>
           <div className="ml-auto flex items-center gap-2">
             <RoleBadge />
+            <ThemeToggle darkMode={darkMode} onToggle={toggleDarkMode} />
             <NotificationsBell setTab={setTab} />
             <UserMenu />
           </div>
@@ -173,6 +200,29 @@ export function AppShell({
         </nav>
       </div>
     </div>
+  );
+}
+
+function ThemeToggle({ darkMode, onToggle }: { darkMode: boolean; onToggle: () => void }) {
+  const label = darkMode ? "Usar modo claro" : "Usar modo escuro";
+  const Icon = darkMode ? Sun : Moon;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label={label}
+            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

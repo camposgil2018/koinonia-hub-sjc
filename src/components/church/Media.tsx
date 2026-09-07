@@ -209,7 +209,7 @@ function MediaRequestForm({ me, onDone }: { me: { id: string; name: string }; on
   );
 }
 
-function RequestDetail({ request, me, isTeam }: { request: MediaRequest; me: { id: string; name: string; role: string; ministries?: string[] } }) {
+function RequestDetail({ request, me }: { request: MediaRequest; me: { id: string; name: string; role: string; ministries?: string[] } }) {
   const state = useStore((s) => s);
   const [message, setMessage] = useState("");
   const messages = state.mediaMessages.filter((item) => item.requestId === request.id);

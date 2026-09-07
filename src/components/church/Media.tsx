@@ -40,11 +40,18 @@ const statusStyle: Record<MediaRequestStatus, string> = {
   rejected: "bg-destructive text-destructive-foreground",
 };
 
+export function isMediaLeader(user: { name?: string; ministries?: string[]; role?: string }) {
+  const name = (user.name ?? "").toLowerCase();
+  if (name.includes("quezia")) return true;
+  return user.role === "moderator" && (user.ministries ?? []).includes("Mídia");
+}
+
 export function Media() {
   const state = useStore((s) => s);
   const me = state.users.find((user) => user.id === state.currentUserId)!;
   const isAdmin = me.role === "admin";
-  const isTeam = isAdmin || me.role === "moderator";
+  const mediaLeader = isMediaLeader(me);
+  const isTeam = isAdmin || mediaLeader || me.role === "moderator";
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<"all" | MediaRequestStatus>("all");
@@ -53,9 +60,10 @@ export function Media() {
   const visibleRequests = useMemo(
     () =>
       state.mediaRequests.filter(
-        (request) => isAdmin || request.requesterId === me.id || request.assigneeId === me.id,
+        (request) =>
+          isAdmin || mediaLeader || request.requesterId === me.id || request.assigneeId === me.id,
       ),
-    [state.mediaRequests, isAdmin, me.id],
+    [state.mediaRequests, isAdmin, mediaLeader, me.id],
   );
 
   const stats = useMemo(
@@ -128,7 +136,7 @@ export function Media() {
             </button>
           ))}
         </div>
-        {selected ? <RequestDetail request={selected} me={me} isTeam={isTeam} /> : <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Selecione um pedido para ver os detalhes.</CardContent></Card>}
+        {selected ? <RequestDetail request={selected} me={me} /> : <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Selecione um pedido para ver os detalhes.</CardContent></Card>}
       </div>
     </div>
   );
@@ -201,11 +209,11 @@ function MediaRequestForm({ me, onDone }: { me: { id: string; name: string }; on
   );
 }
 
-function RequestDetail({ request, me, isTeam }: { request: MediaRequest; me: { id: string; name: string; role: string }; isTeam: boolean }) {
+function RequestDetail({ request, me }: { request: MediaRequest; me: { id: string; name: string; role: string; ministries?: string[] } }) {
   const state = useStore((s) => s);
   const [message, setMessage] = useState("");
   const messages = state.mediaMessages.filter((item) => item.requestId === request.id);
-  const canEdit = isTeam && (me.role === "admin" || request.assigneeId === me.id);
+  const canEdit = me.role === "admin" || isMediaLeader(me) || request.assigneeId === me.id;
   const canDelete = me.role === "admin" || request.requesterId === me.id;
 
   const removeRequest = () => {
@@ -252,7 +260,7 @@ function RequestDetail({ request, me, isTeam }: { request: MediaRequest; me: { i
   return (
     <Card className="h-fit"><CardHeader><div className="flex items-start justify-between gap-3"><CardTitle className="text-lg">{request.title}</CardTitle>{canDelete && <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={removeRequest} title="Excluir pedido"><Trash2 className="h-4 w-4" /></Button>}</div><div className="flex flex-wrap gap-2"><Badge className={statusStyle[request.status]}>{STATUS_LABELS[request.status]}</Badge><Badge variant="outline">{request.department}</Badge></div></CardHeader>
       <CardContent className="space-y-4 text-sm"><p className="leading-relaxed">{request.description}</p>{request.reference && <p className="text-muted-foreground">Referência: {request.reference}</p>}<div className="grid gap-1 text-xs text-muted-foreground"><span>Solicitante: {request.requesterName}</span><span>Prazo: {new Date(request.dueDate + "T12:00:00").toLocaleDateString("pt-BR")}</span><span>Responsável: {request.assigneeName ?? "Ainda não atribuído"}</span></div>
-        {canEdit && <div className="grid gap-2 border-t border-border pt-4"><Label>Status</Label><Select value={request.status} onValueChange={(value) => updateRequest({ status: value as MediaRequestStatus })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select><Label>Responsável</Label><Select value={request.assigneeId ?? "none"} onValueChange={(value) => { const user = state.users.find((item) => item.id === value); updateRequest({ assigneeId: value === "none" ? undefined : value, assigneeName: user?.name }); }}><SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger><SelectContent><SelectItem value="none">Sem responsável</SelectItem>{state.users.filter((user) => user.role === "moderator").map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select>{request.status === "rejected" && <Input placeholder="Motivo da rejeição" defaultValue={request.rejectionReason} onBlur={(event) => updateRequest({ rejectionReason: event.target.value })} />}</div>}
+        {canEdit && <div className="grid gap-2 border-t border-border pt-4"><Label>Status</Label><Select value={request.status} onValueChange={(value) => updateRequest({ status: value as MediaRequestStatus })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select><Label>Responsável</Label><Select value={request.assigneeId ?? "none"} onValueChange={(value) => { const user = state.users.find((item) => item.id === value); updateRequest({ assigneeId: value === "none" ? undefined : value, assigneeName: user?.name }); }}><SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger><SelectContent><SelectItem value="none">Sem responsável</SelectItem>{state.users.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select>{request.status === "rejected" && <Input placeholder="Motivo da rejeição" defaultValue={request.rejectionReason} onBlur={(event) => updateRequest({ rejectionReason: event.target.value })} />}</div>}
         <div className="space-y-2 border-t border-border pt-4"><div className="flex items-center gap-2 font-medium"><MessageCircle className="h-4 w-4" />Conversa</div>{messages.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma mensagem ainda.</p>}{messages.map((item) => <div key={item.id} className="rounded-md bg-muted/40 p-2"><div className="text-xs font-medium">{item.authorName}</div><div className="mt-1">{item.text}</div></div>)}<div className="flex gap-2"><Input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Escreva uma mensagem" onKeyDown={(event) => { if (event.key === "Enter") sendMessage(); }} /><Button size="icon" onClick={sendMessage} title="Enviar mensagem"><Send className="h-4 w-4" /></Button></div></div>
       </CardContent>
     </Card>

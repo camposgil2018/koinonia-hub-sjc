@@ -51,7 +51,10 @@ export function Media() {
   const [search, setSearch] = useState("");
 
   const visibleRequests = useMemo(
-    () => state.mediaRequests.filter((request) => isAdmin || request.requesterId === me.id),
+    () =>
+      state.mediaRequests.filter(
+        (request) => isAdmin || request.requesterId === me.id || request.assigneeId === me.id,
+      ),
     [state.mediaRequests, isAdmin, me.id],
   );
 
@@ -217,11 +220,21 @@ function RequestDetail({ request, me, isTeam }: { request: MediaRequest; me: { i
   };
 
   const updateRequest = (patch: Partial<MediaRequest>) => {
-    store.set((current) => ({
-      ...current,
-      mediaRequests: current.mediaRequests.map((item) => item.id === request.id ? { ...item, ...patch } : item),
-      notifications: patch.status && request.requesterId !== me.id ? current.notifications.concat({ id: uid(), userId: request.requesterId, type: "media", title: "Atualização do pedido de mídia", body: `${request.title}: ${STATUS_LABELS[patch.status]}`, link: "media", refId: request.id, date: new Date().toISOString(), read: false }) : current.notifications,
-    }));
+    const now = new Date().toISOString();
+    store.set((current) => {
+      let notifications = current.notifications;
+      if (patch.status && request.requesterId !== me.id) {
+        notifications = notifications.concat({ id: uid(), userId: request.requesterId, type: "media", title: "Atualização do pedido de mídia", body: `${request.title}: ${STATUS_LABELS[patch.status]}`, link: "media", refId: request.id, date: now, read: false });
+      }
+      if (patch.assigneeId && patch.assigneeId !== request.assigneeId && patch.assigneeId !== me.id) {
+        notifications = notifications.concat({ id: uid(), userId: patch.assigneeId, type: "media", title: "Novo pedido atribuído a você", body: request.title, link: "media", refId: request.id, date: now, read: false });
+      }
+      return {
+        ...current,
+        mediaRequests: current.mediaRequests.map((item) => item.id === request.id ? { ...item, ...patch } : item),
+        notifications,
+      };
+    });
     toast.success("Pedido atualizado");
   };
 

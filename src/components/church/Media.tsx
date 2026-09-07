@@ -51,7 +51,10 @@ export function Media() {
   const [search, setSearch] = useState("");
 
   const visibleRequests = useMemo(
-    () => state.mediaRequests.filter((request) => isAdmin || request.requesterId === me.id),
+    () =>
+      state.mediaRequests.filter(
+        (request) => isAdmin || request.requesterId === me.id || request.assigneeId === me.id,
+      ),
     [state.mediaRequests, isAdmin, me.id],
   );
 

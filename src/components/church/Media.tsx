@@ -60,9 +60,10 @@ export function Media() {
   const visibleRequests = useMemo(
     () =>
       state.mediaRequests.filter(
-        (request) => isAdmin || request.requesterId === me.id || request.assigneeId === me.id,
+        (request) =>
+          isAdmin || mediaLeader || request.requesterId === me.id || request.assigneeId === me.id,
       ),
-    [state.mediaRequests, isAdmin, me.id],
+    [state.mediaRequests, isAdmin, mediaLeader, me.id],
   );
 
   const stats = useMemo(

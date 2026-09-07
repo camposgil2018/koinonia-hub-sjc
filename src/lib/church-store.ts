@@ -821,7 +821,11 @@ export const members = {
     return { ok: true };
   },
   remove: async (userId: string): Promise<Result> => {
-    const { error } = await supabase.rpc("delete_member", { target_user_id: userId });
+    const rpc = supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ error: { code?: string; message: string } | null }>;
+    const { error } = await rpc("delete_member", { target_user_id: userId });
     if (error) {
       const functionUnavailable =
         error.code === "PGRST202" || error.message.includes("schema cache");

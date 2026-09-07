@@ -83,10 +83,9 @@ export function Media() {
     return visibleRequests
       .filter((request) => filter === "all" || request.status === filter)
       .filter((request) => !term || `${request.title} ${request.requesterName} ${request.type}`.toLowerCase().includes(term))
+      .filter((request) => isAdmin || mediaLeader || (!!request.assigneeId && request.assigneeId === me.id))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [visibleRequests, filter, search]);
-
-  const selected = requests.find((request) => request.id === selectedId) ?? requests[0];
+  }, [visibleRequests, filter, search, isAdmin, mediaLeader, me.id]);
 
   return (
     <div className="space-y-6">
@@ -127,16 +126,16 @@ export function Media() {
         </Select>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-        <div className="space-y-3">
-          {requests.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Nenhum pedido encontrado.</CardContent></Card>}
-          {requests.map((request) => (
-            <button key={request.id} type="button" onClick={() => setSelectedId(request.id)} className="block w-full text-left">
-              <RequestCard request={request} active={selected?.id === request.id} />
+      <div className="space-y-3">
+        {requests.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">{isAdmin || mediaLeader ? "Nenhum pedido encontrado." : "Nenhum pedido atribuído a você."}</CardContent></Card>}
+        {requests.map((request) => (
+          <div key={request.id} className="space-y-3">
+            <button type="button" onClick={() => setSelectedId((current) => (current === request.id ? null : request.id))} className="block w-full text-left">
+              <RequestCard request={request} active={selectedId === request.id} />
             </button>
-          ))}
-        </div>
-        {selected ? <RequestDetail request={selected} me={me} /> : <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Selecione um pedido para ver os detalhes.</CardContent></Card>}
+            {selectedId === request.id && <RequestDetail request={request} me={me} />}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -40,11 +40,18 @@ const statusStyle: Record<MediaRequestStatus, string> = {
   rejected: "bg-destructive text-destructive-foreground",
 };
 
+export function isMediaLeader(user: { name?: string; ministries?: string[]; role?: string }) {
+  const name = (user.name ?? "").toLowerCase();
+  if (name.includes("quezia")) return true;
+  return user.role === "moderator" && (user.ministries ?? []).includes("Mídia");
+}
+
 export function Media() {
   const state = useStore((s) => s);
   const me = state.users.find((user) => user.id === state.currentUserId)!;
   const isAdmin = me.role === "admin";
-  const isTeam = isAdmin || me.role === "moderator";
+  const mediaLeader = isMediaLeader(me);
+  const isTeam = isAdmin || mediaLeader || me.role === "moderator";
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<"all" | MediaRequestStatus>("all");

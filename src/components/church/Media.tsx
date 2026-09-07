@@ -83,10 +83,9 @@ export function Media() {
     return visibleRequests
       .filter((request) => filter === "all" || request.status === filter)
       .filter((request) => !term || `${request.title} ${request.requesterName} ${request.type}`.toLowerCase().includes(term))
+      .filter((request) => isAdmin || mediaLeader || (!!request.assigneeId && request.assigneeId === me.id))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [visibleRequests, filter, search]);
-
-  const selected = requests.find((request) => request.id === selectedId) ?? requests[0];
+  }, [visibleRequests, filter, search, isAdmin, mediaLeader, me.id]);
 
   return (
     <div className="space-y-6">

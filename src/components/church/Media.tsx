@@ -213,7 +213,7 @@ function RequestDetail({ request, me, isTeam }: { request: MediaRequest; me: { i
   const state = useStore((s) => s);
   const [message, setMessage] = useState("");
   const messages = state.mediaMessages.filter((item) => item.requestId === request.id);
-  const canEdit = isTeam && (me.role === "admin" || request.assigneeId === me.id);
+  const canEdit = me.role === "admin" || isMediaLeader(me) || request.assigneeId === me.id;
   const canDelete = me.role === "admin" || request.requesterId === me.id;
 
   const removeRequest = () => {

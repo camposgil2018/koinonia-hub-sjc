@@ -46,6 +46,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
   const allConfirmed = myAssignments.length > 0 && myAssignments.every((a) => a.status === "confirmed");
   const anyDeclined = myAssignments.length > 0 && myAssignments.some((a) => a.status === "declined");
   const answered = myAssignments.length > 0 && myAssignments.every((a) => a.status && a.status !== "pending");
+  const [reopen, setReopen] = useState(false);
 
   let statusLabel = "Pendente";
   let statusClass = "bg-muted text-muted-foreground hover:bg-muted border border-border";

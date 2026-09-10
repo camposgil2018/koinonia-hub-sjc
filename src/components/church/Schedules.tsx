@@ -43,6 +43,7 @@ export function Schedules() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
   const isAdmin = me.role === "admin" || me.role === "moderator";
+  const canDelete = me.role === "admin";
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -71,7 +72,7 @@ export function Schedules() {
             {[...state.schedules]
               .sort((a, b) => a.date.localeCompare(b.date))
               .map((s) => (
-                <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} />
+                <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} canDelete={canDelete} />
               ))}
           </TabsContent>
         )}
@@ -81,7 +82,13 @@ export function Schedules() {
             .filter((s) => s.assignments.some((a) => a.userId === me.id))
             .sort((a, b) => a.date.localeCompare(b.date))
             .map((s) => (
-              <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} highlightUserId={me.id} />
+              <ScheduleCard
+                key={s.id}
+                schedule={s}
+                canEdit={isAdmin}
+                canDelete={canDelete}
+                highlightUserId={me.id}
+              />
             ))}
           {state.schedules.filter((s) => s.assignments.some((a) => a.userId === me.id)).length ===
             0 && (
@@ -104,10 +111,12 @@ export function Schedules() {
 function ScheduleCard({
   schedule,
   canEdit,
+  canDelete = false,
   highlightUserId,
 }: {
   schedule: import("@/lib/church-store").Schedule;
   canEdit: boolean;
+  canDelete?: boolean;
   highlightUserId?: string;
 }) {
   const users = useStore((s) => s.users);

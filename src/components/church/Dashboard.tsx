@@ -184,6 +184,14 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
                     </Button>
                   </div>
                 )}
+                {answered && !reopen && (
+                  <button
+                    onClick={() => setReopen(true)}
+                    className="text-xs text-primary hover:underline pt-2 block"
+                  >
+                    Alterar resposta
+                  </button>
+                )}
                 <button
                   onClick={() => goTo("schedules")}
                   className="text-sm text-primary hover:underline block pt-2"

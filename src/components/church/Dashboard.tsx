@@ -4,6 +4,7 @@ import { useStore, store } from "@/lib/church-store";
 import { CalendarClock, Sparkles, BookOpen, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useState } from "react";
 
 
 const VERSES = [
@@ -46,6 +47,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
   const allConfirmed = myAssignments.length > 0 && myAssignments.every((a) => a.status === "confirmed");
   const anyDeclined = myAssignments.length > 0 && myAssignments.some((a) => a.status === "declined");
   const answered = myAssignments.length > 0 && myAssignments.every((a) => a.status && a.status !== "pending");
+  const [reopen, setReopen] = useState(false);
 
   let statusLabel = "Pendente";
   let statusClass = "bg-muted text-muted-foreground hover:bg-muted border border-border";
@@ -80,6 +82,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
           ),
       ),
     }));
+    setReopen(false);
     toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
   };
   const upcomingEvents = state.events
@@ -163,7 +166,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
                       </div>
                     ))}
                 </div>
-                {!answered && (
+                {(!answered || reopen) && (
                   <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-3">
                     <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença:</span>
                     <Button
@@ -183,6 +186,14 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
                       Recusar
                     </Button>
                   </div>
+                )}
+                {answered && !reopen && (
+                  <button
+                    onClick={() => setReopen(true)}
+                    className="text-xs text-primary hover:underline pt-2 block"
+                  >
+                    Alterar resposta
+                  </button>
                 )}
                 <button
                   onClick={() => goTo("schedules")}

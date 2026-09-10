@@ -144,6 +144,7 @@ function ScheduleCard({
           ),
       ),
     }));
+    setReopen(false);
     toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
   };
 
@@ -151,7 +152,8 @@ function ScheduleCard({
   const hasMyAssignment = myAssignments.length > 0;
   const answered =
     hasMyAssignment && myAssignments.every((a) => a.status && a.status !== "pending");
-  const showResponse = hasMyAssignment && !answered;
+  const [reopen, setReopen] = useState(false);
+  const showResponse = hasMyAssignment && (!answered || reopen);
 
 
   const grouped = useMemo(() => {
@@ -265,6 +267,16 @@ function ScheduleCard({
             >
               Recusar
             </Button>
+          </div>
+        )}
+        {hasMyAssignment && answered && !reopen && (
+          <div className="mt-4 border-t border-border pt-3">
+            <button
+              onClick={() => setReopen(true)}
+              className="text-xs text-primary hover:underline"
+            >
+              Alterar resposta
+            </button>
           </div>
         )}
       </CardContent>

@@ -269,6 +269,16 @@ function ScheduleCard({
             </Button>
           </div>
         )}
+        {hasMyAssignment && answered && !reopen && (
+          <div className="mt-4 border-t border-border pt-3">
+            <button
+              onClick={() => setReopen(true)}
+              className="text-xs text-primary hover:underline"
+            >
+              Alterar resposta
+            </button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

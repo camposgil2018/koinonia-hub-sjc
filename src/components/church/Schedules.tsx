@@ -672,6 +672,29 @@ function UnavailabilityPanel() {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [reason, setReason] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ start: "", end: "", reason: "" });
+
+  const saveEdit = (id: string) => {
+    if (!editForm.start || !editForm.end) {
+      toast.error("Informe data inicial e final");
+      return;
+    }
+    if (editForm.end < editForm.start) {
+      toast.error("Data final deve ser após a inicial");
+      return;
+    }
+    store.set((s) => ({
+      ...s,
+      unavailability: s.unavailability.map((x) =>
+        x.id === id
+          ? { ...x, start: editForm.start, end: editForm.end, reason: editForm.reason }
+          : x,
+      ),
+    }));
+    setEditingId(null);
+    toast.success("Indisponibilidade atualizada");
+  };
 
   const mine = state.unavailability.filter((u) => u.userId === me.id);
   const visible = canViewAll ? state.unavailability : mine;

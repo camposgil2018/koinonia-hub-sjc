@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Plus, Trash2, CalendarOff, Users, UserPlus } from "lucide-react";
+import { AlertTriangle, Plus, Pencil, Trash2, CalendarOff, Users, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import {
   useStore,
@@ -43,6 +43,7 @@ export function Schedules() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
   const isAdmin = me.role === "admin" || me.role === "moderator";
+  const canDelete = me.role === "admin";
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -71,7 +72,7 @@ export function Schedules() {
             {[...state.schedules]
               .sort((a, b) => a.date.localeCompare(b.date))
               .map((s) => (
-                <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} />
+                <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} canDelete={canDelete} />
               ))}
           </TabsContent>
         )}
@@ -81,7 +82,13 @@ export function Schedules() {
             .filter((s) => s.assignments.some((a) => a.userId === me.id))
             .sort((a, b) => a.date.localeCompare(b.date))
             .map((s) => (
-              <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} highlightUserId={me.id} />
+              <ScheduleCard
+                key={s.id}
+                schedule={s}
+                canEdit={isAdmin}
+                canDelete={canDelete}
+                highlightUserId={me.id}
+              />
             ))}
           {state.schedules.filter((s) => s.assignments.some((a) => a.userId === me.id)).length ===
             0 && (
@@ -104,10 +111,12 @@ export function Schedules() {
 function ScheduleCard({
   schedule,
   canEdit,
+  canDelete = false,
   highlightUserId,
 }: {
   schedule: import("@/lib/church-store").Schedule;
   canEdit: boolean;
+  canDelete?: boolean;
   highlightUserId?: string;
 }) {
   const users = useStore((s) => s.users);
@@ -171,14 +180,16 @@ function ScheduleCard({
         {canEdit && (
           <div className="flex shrink-0 items-center gap-1">
             <AddMinistryDialog schedule={schedule} />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={remove}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={remove}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </CardHeader>
@@ -661,6 +672,29 @@ function UnavailabilityPanel() {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [reason, setReason] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ start: "", end: "", reason: "" });
+
+  const saveEdit = (id: string) => {
+    if (!editForm.start || !editForm.end) {
+      toast.error("Informe data inicial e final");
+      return;
+    }
+    if (editForm.end < editForm.start) {
+      toast.error("Data final deve ser após a inicial");
+      return;
+    }
+    store.set((s) => ({
+      ...s,
+      unavailability: s.unavailability.map((x) =>
+        x.id === id
+          ? { ...x, start: editForm.start, end: editForm.end, reason: editForm.reason }
+          : x,
+      ),
+    }));
+    setEditingId(null);
+    toast.success("Indisponibilidade atualizada");
+  };
 
   const mine = state.unavailability.filter((u) => u.userId === me.id);
   const visible = canViewAll ? state.unavailability : mine;
@@ -747,39 +781,96 @@ function UnavailabilityPanel() {
             <p className="text-sm text-muted-foreground">Nenhuma indisponibilidade registrada.</p>
           ) : (
             <ul className="space-y-2">
-              {visible.map((u) => (
-                <li
-                  key={u.id}
-                  className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
-                >
-                  <div>
-                    {canViewAll && (
+              {visible.map((u) =>
+                editingId === u.id ? (
+                  <li
+                    key={u.id}
+                    className="space-y-3 rounded-md border border-border bg-muted/30 px-3 py-3 text-sm"
+                  >
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Início</Label>
+                        <Input
+                          type="date"
+                          value={editForm.start}
+                          onChange={(e) => setEditForm((f) => ({ ...f, start: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label>Fim</Label>
+                        <Input
+                          type="date"
+                          value={editForm.end}
+                          onChange={(e) => setEditForm((f) => ({ ...f, end: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Motivo (opcional)</Label>
+                      <Input
+                        value={editForm.reason}
+                        onChange={(e) => setEditForm((f) => ({ ...f, reason: e.target.value }))}
+                        placeholder="Viagem, trabalho..."
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => saveEdit(u.id)}>
+                        Salvar
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </li>
+                ) : (
+                  <li
+                    key={u.id}
+                    className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
+                  >
+                    <div>
+                      {canViewAll && (
+                        <div className="font-medium">
+                          {state.users.find((user) => user.id === u.userId)?.name ?? "Membro"}
+                        </div>
+                      )}
                       <div className="font-medium">
-                        {state.users.find((user) => user.id === u.userId)?.name ?? "Membro"}
+                        {new Date(u.start + "T12:00:00").toLocaleDateString("pt-BR")} →{" "}
+                        {new Date(u.end + "T12:00:00").toLocaleDateString("pt-BR")}
+                      </div>
+                      {u.reason && <div className="text-xs text-muted-foreground">{u.reason}</div>}
+                    </div>
+                    {u.userId === me.id && (
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Editar período"
+                          onClick={() => {
+                            setEditingId(u.id);
+                            setEditForm({ start: u.start, end: u.end, reason: u.reason ?? "" });
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Remover período"
+                          onClick={() => {
+                            store.set((s) => ({
+                              ...s,
+                              unavailability: s.unavailability.filter((x) => x.id !== u.id),
+                            }));
+                            toast.success("Indisponibilidade removida");
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
                       </div>
                     )}
-                    <div className="font-medium">
-                      {new Date(u.start + "T12:00:00").toLocaleDateString("pt-BR")} →{" "}
-                      {new Date(u.end + "T12:00:00").toLocaleDateString("pt-BR")}
-                    </div>
-                    {u.reason && <div className="text-xs text-muted-foreground">{u.reason}</div>}
-                  </div>
-                  {u.userId === me.id && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() =>
-                        store.set((s) => ({
-                          ...s,
-                          unavailability: s.unavailability.filter((x) => x.id !== u.id),
-                        }))
-                      }
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  )}
-                </li>
-              ))}
+                  </li>
+                ),
+              )}
             </ul>
           )}
         </CardContent>

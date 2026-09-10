@@ -66,16 +66,17 @@ export function Media() {
     [state.mediaRequests, isAdmin, mediaLeader, me.id],
   );
 
+  // Os totais consideram todos os pedidos da equipe, mesmo os não atribuídos ao usuário.
   const stats = useMemo(
     () => ({
-      total: visibleRequests.length,
-      pending: visibleRequests.filter((request) => request.status === "pending").length,
-      in_progress: visibleRequests.filter((request) => request.status === "in_progress").length,
-      completed: visibleRequests.filter((request) => request.status === "completed").length,
-      cancelled: visibleRequests.filter((request) => request.status === "cancelled").length,
-      rejected: visibleRequests.filter((request) => request.status === "rejected").length,
+      total: state.mediaRequests.length,
+      pending: state.mediaRequests.filter((request) => request.status === "pending").length,
+      in_progress: state.mediaRequests.filter((request) => request.status === "in_progress").length,
+      completed: state.mediaRequests.filter((request) => request.status === "completed").length,
+      cancelled: state.mediaRequests.filter((request) => request.status === "cancelled").length,
+      rejected: state.mediaRequests.filter((request) => request.status === "rejected").length,
     }),
-    [visibleRequests],
+    [state.mediaRequests],
   );
 
   const requests = useMemo(() => {

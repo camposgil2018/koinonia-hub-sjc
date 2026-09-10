@@ -180,14 +180,16 @@ function ScheduleCard({
         {canEdit && (
           <div className="flex shrink-0 items-center gap-1">
             <AddMinistryDialog schedule={schedule} />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={remove}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={remove}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </CardHeader>

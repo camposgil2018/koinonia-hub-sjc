@@ -82,6 +82,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
           ),
       ),
     }));
+    setReopen(false);
     toast.success(status === "confirmed" ? "Presença confirmada!" : "Presença recusada.");
   };
   const upcomingEvents = state.events

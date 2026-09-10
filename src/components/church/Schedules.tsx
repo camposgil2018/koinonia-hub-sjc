@@ -151,7 +151,8 @@ function ScheduleCard({
   const hasMyAssignment = myAssignments.length > 0;
   const answered =
     hasMyAssignment && myAssignments.every((a) => a.status && a.status !== "pending");
-  const showResponse = hasMyAssignment && !answered;
+  const [reopen, setReopen] = useState(false);
+  const showResponse = hasMyAssignment && (!answered || reopen);
 
 
   const grouped = useMemo(() => {

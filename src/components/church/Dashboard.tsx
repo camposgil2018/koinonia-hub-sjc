@@ -163,7 +163,7 @@ export function Dashboard({ goTo }: { goTo: (t: "schedules" | "agenda" | "notice
                       </div>
                     ))}
                 </div>
-                {!answered && (
+                {(!answered || reopen) && (
                   <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border mt-3">
                     <span className="text-xs text-muted-foreground mr-auto">Confirmar sua presença:</span>
                     <Button

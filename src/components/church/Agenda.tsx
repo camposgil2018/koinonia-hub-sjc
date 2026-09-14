@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, MapPin, Clock, Plus, Pencil, Trash2 } from "lucide-react";
+import { Archive, CalendarDays, ChevronLeft, ChevronRight, MapPin, Clock, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useStore, store, uid, CATALOG, type ChurchEvent } from "@/lib/church-store";
 import { cn } from "@/lib/utils";
@@ -58,7 +59,15 @@ export function Agenda() {
   const me = state.users.find((u) => u.id === state.currentUserId)!;
   const isAdmin = me.role === "admin" || me.role === "moderator";
 
-  const allEvents = state.events;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const upcomingEvents = useMemo(
+    () => state.events.filter((event) => event.date >= todayIso),
+    [state.events, todayIso],
+  );
+  const archivedEvents = useMemo(
+    () => state.events.filter((event) => event.date < todayIso).sort((a, b) => b.date.localeCompare(a.date)),
+    [state.events, todayIso],
+  );
 
   const removeEvent = (eventId: string) => {
     if (!confirm("Tem certeza que deseja remover este evento da agenda?")) return;
@@ -90,16 +99,14 @@ export function Agenda() {
 
   const eventsByDate = useMemo(() => {
     const m = new Map<string, ChurchEvent[]>();
-    allEvents.forEach((e) => {
+    upcomingEvents.forEach((e) => {
       if (!m.has(e.date)) m.set(e.date, []);
       m.get(e.date)!.push(e);
     });
     return m;
-  }, [allEvents]);
+  }, [upcomingEvents]);
 
   const monthLabel = cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  const todayIso = new Date().toISOString().slice(0, 10);
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -114,8 +121,21 @@ export function Agenda() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-4 lg:p-6">
+      <Tabs defaultValue="upcoming">
+        <TabsList className="grid w-full grid-cols-2 sm:w-auto">
+          <TabsTrigger value="upcoming" className="gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Próximos
+          </TabsTrigger>
+          <TabsTrigger value="archived" className="gap-2">
+            <Archive className="h-4 w-4" />
+            Arquivados ({archivedEvents.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="upcoming" className="mt-4 space-y-4">
+          <Card>
+            <CardContent className="p-4 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <Button
               variant="ghost"
@@ -188,17 +208,55 @@ export function Agenda() {
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-2">
-        {state.eventCategories.map((c) => (
-          <Badge key={c} className={cn("font-normal", getCategoryColor(c, state.eventCategories))}>
-            {c}
-          </Badge>
-        ))}
-      </div>
+          <div className="flex flex-wrap gap-2">
+            {state.eventCategories.map((c) => (
+              <Badge key={c} className={cn("font-normal", getCategoryColor(c, state.eventCategories))}>
+                {c}
+              </Badge>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="archived" className="mt-4">
+          {archivedEvents.length === 0 ? (
+            <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+              Nenhum evento arquivado.
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {archivedEvents.map((event) => (
+                <Card
+                  key={event.id}
+                  className="cursor-pointer transition-colors hover:border-primary/50"
+                  onClick={() => setSelected(event)}
+                >
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="font-display text-lg leading-tight">{event.title}</h2>
+                      <Badge className={cn("shrink-0 font-normal", getCategoryColor(event.category, state.eventCategories))}>
+                        {event.category}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1.5 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 shrink-0" />
+                        {new Date(event.date + "T12:00:00").toLocaleDateString("pt-BR")} • {event.time}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 shrink-0" />
+                        <span className="line-clamp-1">{event.location}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent>

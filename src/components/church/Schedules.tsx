@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Plus, Pencil, Trash2, CalendarOff, Users, UserPlus } from "lucide-react";
+import { Archive, AlertTriangle, Plus, Pencil, Trash2, CalendarOff, Users, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import {
   useStore,
@@ -44,6 +44,18 @@ export function Schedules() {
   const me = state.users.find((u) => u.id === state.currentUserId)!;
   const isAdmin = me.role === "admin" || me.role === "moderator";
   const canDelete = me.role === "admin";
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const upcomingSchedules = state.schedules.filter((schedule) => schedule.date >= todayIso);
+  const archivedSchedules = state.schedules
+    .filter(
+      (schedule) =>
+        schedule.date < todayIso &&
+        (isAdmin || schedule.assignments.some((assignment) => assignment.userId === me.id)),
+    )
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const myUpcomingSchedules = upcomingSchedules.filter((schedule) =>
+    schedule.assignments.some((assignment) => assignment.userId === me.id),
+  );
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -61,6 +73,10 @@ export function Schedules() {
         <TabsList className="flex h-auto w-full justify-start overflow-x-auto sm:w-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {isAdmin && <TabsTrigger value="all">Todas as escalas</TabsTrigger>}
           <TabsTrigger value="mine">Minhas escalas</TabsTrigger>
+          <TabsTrigger value="archived">
+            <Archive className="h-3.5 w-3.5 mr-1.5" />
+            Arquivadas ({archivedSchedules.length})
+          </TabsTrigger>
           <TabsTrigger value="unav">
             <CalendarOff className="h-3.5 w-3.5 mr-1.5" />
             Indisponibilidade
@@ -69,7 +85,7 @@ export function Schedules() {
 
         {isAdmin && (
           <TabsContent value="all" className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
-            {[...state.schedules]
+            {[...upcomingSchedules]
               .sort((a, b) => a.date.localeCompare(b.date))
               .map((s) => (
                 <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} canDelete={canDelete} />
@@ -78,8 +94,7 @@ export function Schedules() {
         )}
 
         <TabsContent value="mine" className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
-          {state.schedules
-            .filter((s) => s.assignments.some((a) => a.userId === me.id))
+          {myUpcomingSchedules
             .sort((a, b) => a.date.localeCompare(b.date))
             .map((s) => (
               <ScheduleCard
@@ -90,11 +105,30 @@ export function Schedules() {
                 highlightUserId={me.id}
               />
             ))}
-          {state.schedules.filter((s) => s.assignments.some((a) => a.userId === me.id)).length ===
-            0 && (
+          {myUpcomingSchedules.length === 0 && (
             <Card>
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Você não está em nenhuma escala.
+                Você não está em nenhuma escala futura.
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="archived" className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
+          {archivedSchedules.map((schedule) => (
+            <ScheduleCard
+              key={schedule.id}
+              schedule={schedule}
+              canEdit={false}
+              canDelete={false}
+              highlightUserId={me.id}
+              archived
+            />
+          ))}
+          {archivedSchedules.length === 0 && (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                Nenhuma escala arquivada.
               </CardContent>
             </Card>
           )}
@@ -113,11 +147,13 @@ function ScheduleCard({
   canEdit,
   canDelete = false,
   highlightUserId,
+  archived = false,
 }: {
   schedule: import("@/lib/church-store").Schedule;
   canEdit: boolean;
   canDelete?: boolean;
   highlightUserId?: string;
+  archived?: boolean;
 }) {
   const users = useStore((s) => s.users);
   const unav = useStore((s) => s.unavailability);
@@ -153,7 +189,7 @@ function ScheduleCard({
   const answered =
     hasMyAssignment && myAssignments.every((a) => a.status && a.status !== "pending");
   const [reopen, setReopen] = useState(false);
-  const showResponse = hasMyAssignment && (!answered || reopen);
+  const showResponse = !archived && hasMyAssignment && (!answered || reopen);
 
 
   const grouped = useMemo(() => {
@@ -177,7 +213,10 @@ function ScheduleCard({
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground sm:text-xs">
             {formatDate(schedule.date)} • {schedule.time}
           </div>
-          <CardTitle className="mt-1 text-lg font-display leading-tight sm:text-xl">{schedule.title}</CardTitle>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <CardTitle className="text-lg font-display leading-tight sm:text-xl">{schedule.title}</CardTitle>
+            {archived && <Badge variant="secondary">Arquivada</Badge>}
+          </div>
         </div>
         {canEdit && (
           <div className="flex shrink-0 items-center gap-1">
@@ -269,7 +308,7 @@ function ScheduleCard({
             </Button>
           </div>
         )}
-        {hasMyAssignment && answered && !reopen && (
+        {!archived && hasMyAssignment && answered && !reopen && (
           <div className="mt-4 border-t border-border pt-3">
             <button
               onClick={() => setReopen(true)}

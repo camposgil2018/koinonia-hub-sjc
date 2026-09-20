@@ -17,6 +17,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -32,7 +39,11 @@ type Book = { bookid: number; name: string; chapters: number };
 type Verse = { verse: number; text: string };
 
 const API = "https://bolls.life";
-const TRANSLATION = "NVIPT";
+const TRANSLATIONS = {
+  NVIPT: { shortName: "NVI", fullName: "Nova Versão Internacional" },
+  ARA: { shortName: "ARA", fullName: "Almeida Revista e Atualizada" },
+} as const;
+type Translation = keyof typeof TRANSLATIONS;
 
 const stripTags = (s: string) => s.replace(/<[^>]*>/g, "").trim();
 
@@ -57,13 +68,13 @@ export function Bible() {
       <div>
         <h1 className="font-display text-2xl lg:text-3xl">Bíblia</h1>
         <p className="text-sm text-muted-foreground">
-          Nova Versão Internacional (NVI) e devocionais da liderança.
+          Versões NVI e ARA, com devocionais da liderança.
         </p>
       </div>
 
       <Tabs defaultValue="biblia">
         <TabsList className="grid w-full grid-cols-3 sm:w-auto">
-          <TabsTrigger value="biblia">Bíblia NVI</TabsTrigger>
+          <TabsTrigger value="biblia">Bíblia</TabsTrigger>
           <TabsTrigger value="devocionais">Devocionais</TabsTrigger>
           <TabsTrigger value="anotacoes">Anotações</TabsTrigger>
         </TabsList>
@@ -82,6 +93,7 @@ export function Bible() {
 }
 
 function BibleReader() {
+  const [translation, setTranslation] = useState<Translation>("NVIPT");
   const [books, setBooks] = useState<Book[]>([]);
   const [bookId, setBookId] = useState<number>(43); // João
   const [chapter, setChapter] = useState<number>(3);
@@ -94,20 +106,20 @@ function BibleReader() {
 
   useEffect(() => {
     let alive = true;
-    fetch(`${API}/get-books/${TRANSLATION}/`)
+    fetch(`${API}/get-books/${translation}/`)
       .then((r) => r.json())
       .then((d: Book[]) => alive && setBooks(d))
       .catch(() => alive && setError("Não foi possível carregar os livros."));
     return () => {
       alive = false;
     };
-  }, []);
+  }, [translation]);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setError(null);
-    fetch(`${API}/get-chapter/${TRANSLATION}/${bookId}/${chapter}/`)
+    fetch(`${API}/get-chapter/${translation}/${bookId}/${chapter}/`)
       .then((r) => r.json())
       .then((d: Verse[]) => {
         if (!alive) return;
@@ -118,7 +130,7 @@ function BibleReader() {
     return () => {
       alive = false;
     };
-  }, [bookId, chapter]);
+  }, [translation, bookId, chapter]);
 
   const book = books.find((b) => b.bookid === bookId);
   const chapters = useMemo(
@@ -143,7 +155,7 @@ function BibleReader() {
   return (
     <div className="space-y-4">
       <section className="space-y-3 rounded-lg border border-border bg-card p-3 sm:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_auto] sm:items-end">
           <div className="min-w-0 space-y-1.5">
             <Label>Passagem</Label>
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
@@ -162,6 +174,27 @@ function BibleReader() {
                 Cap. {chapter}
               </Button>
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="bible-translation">Versão</Label>
+            <Select
+              value={translation}
+              onValueChange={(value: Translation) => {
+                setTranslation(value);
+                setQuery("");
+              }}
+            >
+              <SelectTrigger id="bible-translation" aria-label="Versão da Bíblia">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(TRANSLATIONS).map(([value, option]) => (
+                  <SelectItem key={value} value={value}>
+                    {option.shortName} — {option.fullName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex shrink-0 gap-2">
             <Button
@@ -239,7 +272,7 @@ function BibleReader() {
             {book?.name ?? "…"} {chapter}
           </h2>
           <span className="ml-auto text-[11px] uppercase tracking-wider text-muted-foreground">
-            NVI
+            {TRANSLATIONS[translation].shortName}
           </span>
         </div>
 

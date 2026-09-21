@@ -3,6 +3,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  GitCompareArrows,
   Loader2,
   NotebookPen,
   Pencil,
@@ -12,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -26,6 +28,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -37,6 +40,7 @@ import { bibleNotes, type BibleNote } from "@/lib/bible-notes";
 
 type Book = { bookid: number; name: string; chapters: number };
 type Verse = { verse: number; text: string };
+type ComparisonResult = { text: string | null; error: boolean };
 
 const API = "https://bolls.life";
 const TRANSLATIONS = {
@@ -107,6 +111,7 @@ function BibleReader() {
   const [query, setQuery] = useState("");
   const [bookPickerOpen, setBookPickerOpen] = useState(false);
   const [chapterPickerOpen, setChapterPickerOpen] = useState(false);
+  const [selectedVerse, setSelectedVerse] = useState<Verse | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -268,6 +273,17 @@ function BibleReader() {
           setChapterPickerOpen(false);
         }}
       />
+      <VerseComparison
+        open={selectedVerse !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedVerse(null);
+        }}
+        verse={selectedVerse}
+        bookId={bookId}
+        bookName={book?.name ?? "Bíblia"}
+        chapter={chapter}
+        initialTranslation={translation}
+      />
 
       <div className="rounded-xl border border-border bg-card p-5 lg:p-7">
         <div className="flex items-center gap-2 mb-4">
@@ -289,10 +305,19 @@ function BibleReader() {
         {!loading && !error && (
           <div className="space-y-3 leading-relaxed">
             {shown.map((v) => (
-              <p key={v.verse} className="text-[15px]">
-                <sup className="mr-1.5 font-semibold text-primary">{v.verse}</sup>
-                {stripTags(v.text)}
-              </p>
+              <Button
+                key={v.verse}
+                variant="ghost"
+                className="group h-auto w-full justify-start whitespace-normal px-2 py-2 text-left text-[15px] font-normal leading-relaxed hover:bg-muted/60"
+                onClick={() => setSelectedVerse(v)}
+                aria-label={`Comparar ${book?.name ?? "Bíblia"} ${chapter}:${v.verse} em outras versões`}
+              >
+                <span className="min-w-0 flex-1">
+                  <sup className="mr-1.5 font-semibold text-primary">{v.verse}</sup>
+                  {stripTags(v.text)}
+                </span>
+                <GitCompareArrows className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100" />
+              </Button>
             ))}
             {!shown.length && (
               <p className="text-sm text-muted-foreground">Nenhum versículo encontrado.</p>
@@ -301,6 +326,158 @@ function BibleReader() {
         )}
       </div>
     </div>
+  );
+}
+
+function VerseComparison({
+  open,
+  onOpenChange,
+  verse,
+  bookId,
+  bookName,
+  chapter,
+  initialTranslation,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  verse: Verse | null;
+  bookId: number;
+  bookName: string;
+  chapter: number;
+  initialTranslation: Translation;
+}) {
+  const [selectedTranslations, setSelectedTranslations] = useState<Translation[]>([
+    initialTranslation,
+  ]);
+  const [results, setResults] = useState<Partial<Record<Translation, ComparisonResult>>>({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) setSelectedTranslations([initialTranslation]);
+  }, [open, initialTranslation, verse?.verse]);
+
+  useEffect(() => {
+    if (!open || !verse || selectedTranslations.length === 0) return;
+
+    const controller = new AbortController();
+    setLoading(true);
+    setResults({});
+
+    void Promise.all(
+      selectedTranslations.map(async (version) => {
+        try {
+          const response = await fetch(`${API}/get-chapter/${version}/${bookId}/${chapter}/`, {
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error("Falha ao carregar a tradução.");
+          const chapterVerses = (await response.json()) as Verse[];
+          const matchingVerse = Array.isArray(chapterVerses)
+            ? chapterVerses.find((item) => item.verse === verse.verse)
+            : undefined;
+          return [
+            version,
+            { text: matchingVerse ? stripTags(matchingVerse.text) : null, error: false },
+          ] as const;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return null;
+          return [version, { text: null, error: true }] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (controller.signal.aborted) return;
+      setResults(
+        Object.fromEntries(entries.filter((entry) => entry !== null)) as Partial<
+          Record<Translation, ComparisonResult>
+        >,
+      );
+      setLoading(false);
+    });
+
+    return () => controller.abort();
+  }, [bookId, chapter, open, selectedTranslations, verse]);
+
+  const toggleTranslation = (version: Translation, checked: boolean) => {
+    setSelectedTranslations((current) => {
+      if (checked) return current.includes(version) ? current : [...current, version];
+      if (current.length === 1) {
+        toast.error("Mantenha pelo menos uma versão selecionada.");
+        return current;
+      }
+      return current.filter((item) => item !== version);
+    });
+  };
+
+  const reference = verse ? `${bookName} ${chapter}:${verse.verse}` : "Comparar versículo";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden p-0">
+        <DialogHeader className="border-b border-border px-5 pb-4 pt-5 pr-12">
+          <DialogTitle className="flex items-center gap-2">
+            <GitCompareArrows className="h-5 w-5 text-primary" />
+            {reference}
+          </DialogTitle>
+          <DialogDescription>Compare este versículo nas versões que desejar.</DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[calc(90vh-7rem)] overflow-y-auto px-5 pb-5">
+          <fieldset className="sticky top-0 z-10 -mx-5 border-b border-border bg-background px-5 py-4">
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Versões para comparar
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {(Object.entries(TRANSLATIONS) as [Translation, (typeof TRANSLATIONS)[Translation]][]).map(
+                ([version, option]) => {
+                  const checked = selectedTranslations.includes(version);
+                  return (
+                    <label
+                      key={version}
+                      className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(value) => toggleTranslation(version, value === true)}
+                        aria-label={`Comparar na versão ${option.shortName}`}
+                      />
+                      <span className="font-medium">{option.shortName}</span>
+                    </label>
+                  );
+                },
+              )}
+            </div>
+          </fieldset>
+
+          <div className="grid gap-3 pt-4 md:grid-cols-2">
+            {selectedTranslations.map((version) => {
+              const result = results[version];
+              const option = TRANSLATIONS[version];
+              return (
+                <article key={version} className="rounded-lg border border-border bg-card p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3 border-b border-border pb-3">
+                    <div>
+                      <h3 className="font-semibold text-primary">{option.shortName}</h3>
+                      <p className="text-xs text-muted-foreground">{option.fullName}</p>
+                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground">{reference}</span>
+                  </div>
+                  {loading && !result ? (
+                    <div className="flex min-h-20 items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+                    </div>
+                  ) : result?.error ? (
+                    <p className="py-4 text-sm text-destructive">Não foi possível carregar esta versão.</p>
+                  ) : result?.text ? (
+                    <p className="text-[15px] leading-relaxed">{result.text}</p>
+                  ) : (
+                    <p className="py-4 text-sm text-muted-foreground">Versículo indisponível nesta versão.</p>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

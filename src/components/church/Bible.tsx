@@ -42,6 +42,10 @@ const API = "https://bolls.life";
 const TRANSLATIONS = {
   NVIPT: { shortName: "NVI", fullName: "Nova Versão Internacional" },
   ARA: { shortName: "ARA", fullName: "Almeida Revista e Atualizada" },
+  NAA: { shortName: "NAA", fullName: "Nova Almeida Atualizada" },
+  ARC09: { shortName: "ARC", fullName: "Almeida Revista e Corrigida" },
+  ACF11: { shortName: "ACF", fullName: "Almeida Corrigida Fiel" },
+  KJA: { shortName: "KJA", fullName: "Bíblia King James Atualizada" },
 } as const;
 type Translation = keyof typeof TRANSLATIONS;
 
@@ -68,7 +72,7 @@ export function Bible() {
       <div>
         <h1 className="font-display text-2xl lg:text-3xl">Bíblia</h1>
         <p className="text-sm text-muted-foreground">
-          Versões NVI e ARA, com devocionais da liderança.
+          NVI, ARA, NAA, ARC, ACF e KJA, com devocionais da liderança.
         </p>
       </div>
 

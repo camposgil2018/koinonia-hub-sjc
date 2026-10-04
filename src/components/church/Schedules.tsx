@@ -43,6 +43,7 @@ export function Schedules() {
   const state = useStore((s) => s);
   const me = state.users.find((u) => u.id === state.currentUserId)!;
   const isAdmin = me.role === "admin" || me.role === "moderator";
+  const canManageSchedule = me.role === "admin";
   const canDelete = me.role === "admin";
   const todayIso = new Date().toISOString().slice(0, 10);
   const upcomingSchedules = state.schedules.filter((schedule) => schedule.date >= todayIso);
@@ -88,7 +89,13 @@ export function Schedules() {
             {[...upcomingSchedules]
               .sort((a, b) => a.date.localeCompare(b.date))
               .map((s) => (
-                <ScheduleCard key={s.id} schedule={s} canEdit={isAdmin} canDelete={canDelete} />
+                <ScheduleCard
+                  key={s.id}
+                  schedule={s}
+                  canEdit={isAdmin}
+                  canManageSchedule={canManageSchedule}
+                  canDelete={canDelete}
+                />
               ))}
           </TabsContent>
         )}
@@ -101,6 +108,7 @@ export function Schedules() {
                 key={s.id}
                 schedule={s}
                 canEdit={isAdmin}
+                 canManageSchedule={canManageSchedule}
                 canDelete={canDelete}
                 highlightUserId={me.id}
               />
@@ -145,12 +153,14 @@ export function Schedules() {
 function ScheduleCard({
   schedule,
   canEdit,
+  canManageSchedule = false,
   canDelete = false,
   highlightUserId,
   archived = false,
 }: {
   schedule: import("@/lib/church-store").Schedule;
   canEdit: boolean;
+  canManageSchedule?: boolean;
   canDelete?: boolean;
   highlightUserId?: string;
   archived?: boolean;
@@ -221,6 +231,7 @@ function ScheduleCard({
         {canEdit && (
           <div className="flex shrink-0 items-center gap-1">
             <AddMinistryDialog schedule={schedule} />
+             {canManageSchedule && <EditScheduleDialog schedule={schedule} />}
             {canDelete && (
               <Button
                 variant="ghost"
@@ -320,6 +331,227 @@ function ScheduleCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function EditScheduleDialog({ schedule }: { schedule: import("@/lib/church-store").Schedule }) {
+  const users = useStore((s) => s.users);
+  const unav = useStore((s) => s.unavailability);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(schedule.title);
+  const [date, setDate] = useState(schedule.date);
+  const [time, setTime] = useState(schedule.time);
+  const [assignments, setAssignments] = useState<ScheduleAssignment[]>(schedule.assignments);
+
+  const reset = () => {
+    setTitle(schedule.title);
+    setDate(schedule.date);
+    setTime(schedule.time);
+    setAssignments(schedule.assignments.map((assignment) => ({ ...assignment })));
+  };
+
+  const updateAssignment = (index: number, patch: Partial<ScheduleAssignment>) => {
+    setAssignments((current) =>
+      current.map((assignment, assignmentIndex) =>
+        assignmentIndex === index ? { ...assignment, ...patch } : assignment,
+      ),
+    );
+  };
+
+  const addAssignment = () => {
+    setAssignments((current) => [
+      ...current,
+      {
+        ministry: CATALOG.MINISTRIES[0],
+        role: "",
+        userId: "",
+        status: "pending",
+      },
+    ]);
+  };
+
+  const save = () => {
+    if (!title.trim() || !date || !time) {
+      toast.error("Informe título, data e horário");
+      return;
+    }
+    if (assignments.some((assignment) => !assignment.ministry || !assignment.role.trim() || !assignment.userId)) {
+      toast.error("Preencha ministério, função e voluntário em todas as escalações");
+      return;
+    }
+    const unavailableAssignment = assignments.find((assignment) =>
+      isUserUnavailable(assignment.userId, date, unav),
+    );
+    if (unavailableAssignment) {
+      const userName = users.find((user) => user.id === unavailableAssignment.userId)?.name ?? "Um voluntário";
+      toast.error(`${userName} está indisponível na data escolhida`);
+      return;
+    }
+    const hasDuplicate = assignments.some((assignment, index) =>
+      assignments.some(
+        (other, otherIndex) =>
+          otherIndex < index &&
+          other.userId === assignment.userId &&
+          other.ministry === assignment.ministry,
+      ),
+    );
+    if (hasDuplicate) {
+      toast.error("Um voluntário não pode aparecer duas vezes no mesmo ministério");
+      return;
+    }
+
+    store.set((state) => ({
+      ...state,
+      schedules: state.schedules.map((item) =>
+        item.id === schedule.id
+          ? { ...item, title: title.trim(), date, time, assignments }
+          : item,
+      ),
+    }));
+    toast.success("Escala atualizada com sucesso");
+    setOpen(false);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) reset();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={`Editar ${schedule.title}`} title="Editar escala">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar escala</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-4">
+          <div>
+            <Label htmlFor={`edit-title-${schedule.id}`}>Título</Label>
+            <Input
+              id={`edit-title-${schedule.id}`}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor={`edit-date-${schedule.id}`}>Data</Label>
+              <Input
+                id={`edit-date-${schedule.id}`}
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor={`edit-time-${schedule.id}`}>Horário</Label>
+              <Input
+                id={`edit-time-${schedule.id}`}
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label>Escalações</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addAssignment} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar
+              </Button>
+            </div>
+
+            {assignments.length === 0 && (
+              <div className="rounded-lg border border-dashed p-5 text-center text-sm text-muted-foreground">
+                Nenhum voluntário nesta escala.
+              </div>
+            )}
+
+            {assignments.map((assignment, index) => {
+              const selectedUserUnavailable =
+                Boolean(assignment.userId) && isUserUnavailable(assignment.userId, date, unav);
+              return (
+                <div
+                  key={`${assignment.userId}-${assignment.ministry}-${index}`}
+                  className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_1.35fr_auto] sm:items-end"
+                >
+                  <div>
+                    <Label>Ministério</Label>
+                    <Select
+                      value={assignment.ministry}
+                      onValueChange={(value) => updateAssignment(index, { ministry: value })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CATALOG.MINISTRIES.map((ministry) => (
+                          <SelectItem key={ministry} value={ministry}>{ministry}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Função</Label>
+                    <Input
+                      value={assignment.role}
+                      onChange={(event) => updateAssignment(index, { role: event.target.value })}
+                      placeholder="Ex: Vocal"
+                    />
+                  </div>
+                  <div>
+                    <Label>Voluntário</Label>
+                    <Select
+                      value={assignment.userId}
+                      onValueChange={(value) => updateAssignment(index, { userId: value, status: "pending" })}
+                    >
+                      <SelectTrigger className={selectedUserUnavailable ? "border-destructive" : undefined}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => {
+                          const blocked = isUserUnavailable(user.id, date, unav);
+                          return (
+                            <SelectItem key={user.id} value={user.id} disabled={blocked}>
+                              {user.name}{blocked ? " • indisponível" : ""}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    {selectedUserUnavailable && (
+                      <p className="mt-1 text-xs text-destructive">Indisponível nesta data</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remover escalação"
+                    title="Remover escalação"
+                    onClick={() => setAssignments((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={save}>Salvar alterações</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -1,5 +1,6 @@
 # Roadmap
 
+- [ ] Permitir que o perfil de Liderança edite escalas existentes.
 - [x] Melhorar a visualização das escalas no celular.
 - [x] Equipe (liderança não-admin) não pode excluir escalas — só ver e confirmar.
 - [x] Membro pode editar e remover a própria indisponibilidade.

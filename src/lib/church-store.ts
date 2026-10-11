@@ -829,14 +829,12 @@ export const members = {
     if (error) {
       const functionUnavailable =
         error.code === "PGRST202" || error.message.includes("schema cache");
-      if (!functionUnavailable) return { ok: false, error: error.message };
-
-      // Compatibilidade enquanto a migration ainda não foi aplicada no Supabase:
-      // revoga primeiro o papel para impedir novo acesso e remove o perfil da igreja.
-      await Promise.all([
-        supabase.from("user_roles").delete().eq("user_id", userId),
-        supabase.from("profiles").delete().eq("id", userId),
-      ]);
+      return {
+        ok: false,
+        error: functionUnavailable
+          ? "A exclusão de usuários ainda não foi ativada no Supabase. Aplique a migration delete_member_rpc."
+          : error.message,
+      };
     }
     store.set((s) => ({
       ...s,

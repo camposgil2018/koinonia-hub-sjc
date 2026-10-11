@@ -836,6 +836,14 @@ export const members = {
           : error.message,
       };
     }
+    // Confirma no banco antes de retirar o cadastro da interface.
+    const { data: remainingProfile, error: verifyError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (verifyError) return { ok: false, error: `Não foi possível confirmar a exclusão: ${verifyError.message}` };
+    if (remainingProfile) return { ok: false, error: "A conta ainda existe no banco. Verifique a função delete_member e os vínculos da conta no Lovable Cloud." };
     store.set((s) => ({
       ...s,
       users: s.users.filter((u) => u.id !== userId),

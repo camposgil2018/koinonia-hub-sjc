@@ -26,6 +26,8 @@ import {
 export function Members() {
   const users = useStore((s) => s.users);
   const meId = useStore((s) => s.currentUserId);
+  const isAdmin = users.some((u) => u.id === meId && u.role === "admin");
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [edit, setEdit] = useState<User | null>(null);
 
@@ -68,7 +70,7 @@ export function Members() {
       toast.error("Este registro antigo não possui uma conta para remover");
       return;
     }
-    if (!confirm(`Remover ${u.name}? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm(`Excluir definitivamente a conta de ${u.name} (${u.email})? O usuário perderá acesso ao sistema. Esta ação não pode ser desfeita.`)) return;
     const res = await members.remove(u.id);
     if (!res.ok) {
       toast.error(res.error);
@@ -180,11 +182,11 @@ export function Members() {
                 <Button variant="ghost" size="icon" onClick={() => setEdit(u)} className="text-xs">
                   <Pencil />
                 </Button>
-                <Button
+                {isAdmin && <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => remove(u)}
-                  disabled={!z.string().uuid().safeParse(u.id).success || u.id === meId}
+                  onClick={() => void remove(u)}
+                  disabled={!!removingId || !z.string().uuid().safeParse(u.id).success || u.id === meId}
                   title={
                     u.id === meId
                       ? "Você não pode remover a si mesmo"
@@ -193,7 +195,7 @@ export function Members() {
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
-                </Button>
+                </Button>}
               </div>
             </CardContent>
           </Card>

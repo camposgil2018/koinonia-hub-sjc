@@ -62,6 +62,10 @@ export function Members() {
   };
 
   const remove = async (u: User) => {
+    if (!isAdmin) {
+      toast.error("Somente administradores podem excluir usuários");
+      return;
+    }
     if (u.id === meId) {
       toast.error("Você não pode remover a si mesmo");
       return;
@@ -194,7 +198,7 @@ export function Members() {
                   }
                   className="text-muted-foreground hover:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  {removingId === u.id ? "..." : <Trash2 className="h-4 w-4" />}
                 </Button>}
               </div>
             </CardContent>

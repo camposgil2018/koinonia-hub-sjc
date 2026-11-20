@@ -84,7 +84,7 @@ export function Media() {
     return visibleRequests
       .filter((request) => filter === "all" || request.status === filter)
       .filter((request) => !term || `${request.title} ${request.requesterName} ${request.type}`.toLowerCase().includes(term))
-      .filter((request) => isAdmin || mediaLeader || (!!request.assigneeId && request.assigneeId === me.id))
+      .filter((request) => isAdmin || mediaLeader || request.requesterId === me.id || (!!request.assigneeId && request.assigneeId === me.id))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [visibleRequests, filter, search, isAdmin, mediaLeader, me.id]);
 
@@ -128,7 +128,7 @@ export function Media() {
       </div>
 
       <div className="space-y-3">
-        {requests.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">{isAdmin || mediaLeader ? "Nenhum pedido encontrado." : "Nenhum pedido atribuído a você."}</CardContent></Card>}
+        {requests.length === 0 && <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">{isAdmin || mediaLeader ? "Nenhum pedido encontrado." : "Nenhum pedido solicitado ou atribuído a você."}</CardContent></Card>}
         {requests.map((request) => (
           <div key={request.id} className="space-y-3">
             <button type="button" onClick={() => setSelectedId((current) => (current === request.id ? null : request.id))} className="block w-full text-left">

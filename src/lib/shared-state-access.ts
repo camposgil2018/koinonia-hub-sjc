@@ -63,7 +63,12 @@ export function filterSharedStateForMember(raw: SharedState, userId: string): Sh
   };
 }
 
-function mergeScheduleResponses(current: unknown, incoming: unknown, userId: string) {
+function mergeScheduleResponses(
+  current: unknown,
+  incoming: unknown,
+  userId: string,
+  availability: Array<{ start: string; end: string }>,
+) {
   const incomingById = new Map(
     records(incoming)
       .filter((schedule) => typeof schedule.id === "string")
@@ -74,21 +79,26 @@ function mergeScheduleResponses(current: unknown, incoming: unknown, userId: str
     const submitted = typeof schedule.id === "string" ? incomingById.get(schedule.id) : undefined;
     if (!submitted) return schedule;
     const submittedAssignments = records(submitted.assignments);
+    const scheduleDate = typeof schedule.date === "string" ? schedule.date : null;
+    const coveredByAvailability =
+      scheduleDate !== null &&
+      availability.some((period) => period.start <= scheduleDate && period.end >= scheduleDate);
 
     return {
       ...schedule,
-      assignments: records(schedule.assignments).map((assignment) => {
-        if (assignment.userId !== userId) return assignment;
+      assignments: records(schedule.assignments).flatMap((assignment) => {
+        if (assignment.userId !== userId) return [assignment];
         const response = submittedAssignments.find(
           (candidate) =>
             candidate.userId === userId &&
             candidate.ministry === assignment.ministry &&
             candidate.role === assignment.role,
         );
-        const status = response?.status;
+        if (!response) return coveredByAvailability ? [] : [assignment];
+        const status = response.status;
         return status === "pending" || status === "confirmed" || status === "declined"
-          ? { ...assignment, status }
-          : assignment;
+          ? [{ ...assignment, status }]
+          : [assignment];
       }),
     };
   });
@@ -206,17 +216,25 @@ export function mergeMemberSharedState(
 ): SharedState {
   const current = prepareSharedState(currentRaw);
   const incoming = prepareSharedState(incomingRaw);
+  const ownAvailability =
+    incoming.unavailability !== undefined
+      ? ownUnavailability(incoming.unavailability, userId)
+      : undefined;
   const merged: SharedState = {
     ...current,
-    schedules: mergeScheduleResponses(current.schedules, incoming.schedules, userId),
+    schedules: mergeScheduleResponses(
+      current.schedules,
+      incoming.schedules,
+      userId,
+      ownAvailability ?? [],
+    ),
     prayers: mergePrayers(current.prayers, incoming.prayers ?? [], userId),
   };
 
-  if (incoming.unavailability !== undefined) {
-    const own = ownUnavailability(incoming.unavailability, userId);
+  if (ownAvailability) {
     merged.unavailability = [
       ...records(current.unavailability).filter((item) => item.userId !== userId),
-      ...own,
+      ...ownAvailability,
     ];
   }
 

@@ -16,6 +16,7 @@ const current = {
     {
       id: "schedule-1",
       title: "Sunday service",
+      date: "2026-12-02",
       assignments: [
         { userId: memberId, ministry: "Louvor", role: "Singer", status: "pending" },
         { userId: otherId, ministry: "Staff", role: "Greeter", status: "pending" },
@@ -115,6 +116,33 @@ describe("shared state access", () => {
     assert.equal(prayers[0].status, "novo");
     assert.deepEqual(prayers[0].prayedBy, [memberId]);
     assert.equal(prayers[1].title, "Private");
+  });
+
+  test("removes only member assignments covered by a new unavailable period", () => {
+    const authoritative = structuredClone(current);
+    const incoming = filterSharedStateForMember(authoritative, memberId);
+    const schedule = (incoming.schedules as Array<Record<string, unknown>>)[0];
+    schedule.assignments = [];
+    incoming.unavailability = [
+      { id: "u2", userId: memberId, start: "2026-12-01", end: "2026-12-03" },
+    ];
+
+    const merged = mergeMemberSharedState(authoritative, incoming, memberId);
+    const schedules = merged.schedules as Array<Record<string, unknown>>;
+    assert.deepEqual(schedules[0].assignments, [
+      { userId: otherId, ministry: "Staff", role: "Greeter", status: "pending" },
+    ]);
+  });
+
+  test("does not remove a member assignment without covering unavailability", () => {
+    const authoritative = structuredClone(current);
+    const incoming = filterSharedStateForMember(authoritative, memberId);
+    const schedule = (incoming.schedules as Array<Record<string, unknown>>)[0];
+    schedule.assignments = [];
+
+    const merged = mergeMemberSharedState(authoritative, incoming, memberId);
+    const schedules = merged.schedules as Array<Record<string, unknown>>;
+    assert.deepEqual(schedules[0].assignments, current.schedules[0].assignments);
   });
 
   test("rejects availability submitted for another member", () => {

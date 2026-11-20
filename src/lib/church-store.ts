@@ -125,9 +125,6 @@ export type PrayerRequest = {
   prayedBy: string[];
 };
 
-
-
-
 const MINISTRIES = ["Louvor", "Mídia", "Infantil", "Staff", "Intercessão"] as const;
 const NOTICE_CATEGORIES = ["Geral", "Jovens", "Casais", "Liderança"] as const;
 const EVENT_CATEGORIES = ["Culto", "Sala de Oração", "Projeto Social", "GC"] as const;
@@ -383,7 +380,6 @@ const seedUnav: Unavailability[] = [
   },
 ];
 
-
 const seedPrayers: PrayerRequest[] = [
   {
     id: "p1",
@@ -498,7 +494,6 @@ const initial: State = {
   agendaVersion: AGENDA_VERSION,
 };
 
-
 const load = (): State => {
   if (typeof window === "undefined") return initial;
   try {
@@ -519,8 +514,6 @@ const load = (): State => {
       devotionals: parsed.devotionals ?? initial.devotionals,
       removedUserIds: parsed.removedUserIds ?? [],
     };
-
-
   } catch {
     return initial;
   }
@@ -531,7 +524,7 @@ const listeners = new Set<() => void>();
 const save = () => {
   if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(state));
   // Persistir no Supabase (não aguarda, falha será logada)
-  upsertState(state).catch((e) => console.error('Supabase upsert error:', e));
+  upsertState(state).catch((e) => console.error("Supabase upsert error:", e));
   listeners.forEach((l) => l());
 };
 
@@ -618,8 +611,10 @@ export async function refreshSharedState() {
     (s) => ({
       ...s,
       ...shared,
-      events: needsAgendaMigration ? seedEvents : shared.events ?? s.events,
-      eventCategories: needsAgendaMigration ? [...EVENT_CATEGORIES] : shared.eventCategories ?? s.eventCategories,
+      events: needsAgendaMigration ? seedEvents : (shared.events ?? s.events),
+      eventCategories: needsAgendaMigration
+        ? [...EVENT_CATEGORIES]
+        : (shared.eventCategories ?? s.eventCategories),
       agendaVersion: AGENDA_VERSION,
     }),
     { silent: true, persist: needsAgendaMigration },
@@ -634,7 +629,6 @@ if (typeof window !== "undefined") {
     })
     .catch((e) => console.warn("Backend fetch error:", e));
 }
-
 
 export function useStore<T>(selector: (s: State) => T): T {
   return useSyncExternalStore(
@@ -667,9 +661,7 @@ export const notifications = {
     store.set(
       (s) => ({
         ...s,
-        notifications: s.notifications.map((n) =>
-          n.userId === userId ? { ...n, read: true } : n,
-        ),
+        notifications: s.notifications.map((n) => (n.userId === userId ? { ...n, read: true } : n)),
       }),
       { silent: true },
     ),
@@ -679,7 +671,6 @@ export const notifications = {
       { silent: true },
     ),
 };
-
 
 // ---------- AUTH (autenticação real no backend) ----------
 type Result = { ok: true } | { ok: false; error: string };
@@ -761,20 +752,16 @@ type ProfileRow = {
   phone: string | null;
   ministries: string[];
   avatar_color: string;
+  role: Role;
 };
 
 export async function loadUsersFromDb() {
-  const [{ data: profiles }, { data: roles }] = await Promise.all([
-    supabase.from("profiles").select("id,name,email,phone,ministries,avatar_color"),
-    supabase.from("user_roles").select("user_id,role"),
-  ]);
-  if (!profiles) return;
-  const roleById = new Map<string, Role>();
-  for (const r of roles ?? []) {
-    const current = roleById.get(r.user_id);
-    if (current === "admin") continue;
-    roleById.set(r.user_id, r.role as Role);
+  const { data: profiles, error } = await supabase.rpc("get_member_directory");
+  if (error) {
+    console.warn("Backend: falha ao carregar o diretório de membros");
+    return;
   }
+  if (!profiles) return;
   const removedUserIds = new Set(state.removedUserIds ?? []);
   const dbUsers: User[] = (profiles as ProfileRow[])
     .filter((profile) => !removedUserIds.has(profile.id))
@@ -782,7 +769,7 @@ export async function loadUsersFromDb() {
       id: p.id,
       name: p.name || p.email,
       email: p.email,
-      role: roleById.get(p.id) ?? "member",
+      role: p.role,
       ministries: p.ministries ?? [],
       avatarColor: p.avatar_color || pickColor(i),
       phone: p.phone ?? undefined,
@@ -842,8 +829,14 @@ export const members = {
       .select("id")
       .eq("id", userId)
       .maybeSingle();
-    if (verifyError) return { ok: false, error: `Não foi possível confirmar a exclusão: ${verifyError.message}` };
-    if (remainingProfile) return { ok: false, error: "A conta ainda existe no banco. Verifique a função delete_member e os vínculos da conta no Lovable Cloud." };
+    if (verifyError)
+      return { ok: false, error: `Não foi possível confirmar a exclusão: ${verifyError.message}` };
+    if (remainingProfile)
+      return {
+        ok: false,
+        error:
+          "A conta ainda existe no banco. Verifique a função delete_member e os vínculos da conta no Lovable Cloud.",
+      };
     store.set((s) => ({
       ...s,
       users: s.users.filter((u) => u.id !== userId),
